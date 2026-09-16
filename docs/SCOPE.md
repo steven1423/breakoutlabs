@@ -4,12 +4,13 @@ What is Live, what is Seeded, and what was cut. Updated at the end of every mile
 
 Live means a real external API or real database logic in the production build. Seeded means synthetic data. If a milestone cannot meet its definition of done, this file says so and the page shows the same message.
 
-## Status after M2
+## Status after M3
 
 | View | Badge today | What fills it |
 |---|---|---|
 | `/` landing | none (static) | Thesis lines and Enter exist. The loop animation is M7. |
-| `/ops` | Seeded, live queries | State track, stuck queue with SLA hours and likely cause, run-sweep button, full kit table. M3 adds the copilot. |
+| `/ops` | Seeded, live queries | State track, stuck queue, run-sweep button, full kit table, the copilot (Live model calls when ANTHROPIC_API_KEY is set, otherwise disabled with a message), proposed actions with Confirm and Reject. |
+| `/ops/tickets/[id]` | Seeded, live queries | Ticket with kit state, AI summary and suggested reply (Live model call), cached on the ticket. |
 | `/ops/kits/[code]` | Seeded, live queries | Timeline with elapsed time per state, live SLA timer, tickets, proposed actions, staff fix for exception states. |
 | `/growth` | Seeded (empty) | M4: YouTube adapter (Live), creator cards, leaderboard. |
 | `/growth/allocator` | Seeded (empty) | M4: Thompson-sampling allocator. |
@@ -27,4 +28,4 @@ All customer, kit, panel, ticket and attribution rows are synthetic, generated b
 
 ## Milestones that did not meet their definition of done
 
-None so far.
+M3: the 15 evals could not be run in the build sandbox because ANTHROPIC_API_KEY was not set there. The loop, guard, tools and transparency record are covered by unit tests with a fake client; `pnpm eval` is ready to run wherever the key exists.

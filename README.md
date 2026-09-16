@@ -29,8 +29,9 @@ Requires Node 22.18 or newer (the scripts use Node's built-in TypeScript support
 | `pnpm gen:types` | Regenerates `lib/db/types.ts` from the live schema |
 | `pnpm seed` | Wipes and reloads the synthetic dataset; prints counts and a checksum |
 | `pnpm sweep` | Runs the stuck-kit sweep once; safe to repeat |
+| `pnpm eval` | Runs the 15 copilot evals against the live database (needs ANTHROPIC_API_KEY) |
 
-`pnpm eval` and `pnpm discover` are added by the milestones that build them.
+`pnpm discover` is added by the milestone that builds it.
 
 ## Database
 

@@ -151,3 +151,42 @@ Every non-obvious choice gets an entry: what, why, the alternative considered. N
 ### Node 22.18 or newer
 - What: `engines.node` is now `>=22.18`.
 - Why: the seed, migrate and sweep scripts run TypeScript through Node's built-in type stripping, which shipped unflagged in 22.18. CLAUDE.md says Node 20+; that predates the scripts.
+
+## M3 — Copilot
+
+### The model's SQL runs as `copilot` through two security-invoker functions, not a second connection string
+- What: `copilot_run_readonly_query` and `copilot_explain_query` are public functions executable only by `service_role`, which is granted membership in `copilot` and switches to it with `set local role` inside the function. Only masked views in schema `copilot` are readable; public tables are denied.
+- Why: the direct Postgres host is IPv6-only and unreachable from the sandbox, so `SUPABASE_COPILOT_DB_URL` could not be exercised. The function gives the same privilege boundary over HTTPS and was probed: views readable, base tables denied, 200-row cap, anon cannot execute.
+- Alternative: security definer functions. Rejected because Postgres forbids `SET ROLE` inside them (migration 0005 tried it, 0006 corrected it).
+
+### The 5-second timeout is enforced by the client, not the function
+- What: `set_config('statement_timeout')` inside a running statement does not re-arm the timer, so the RPC call carries an `AbortSignal.timeout(5000)`, the guard rejects `pg_sleep`, and `alter role copilot set statement_timeout` covers any direct connection.
+- Why: measured: a `pg_sleep(10)` through the function completed. The client abort is the guarantee the app can actually give.
+
+### Guard first, then EXPLAIN, then run
+- What: `guardSql` is a pure whitelist (one `select` or `with`, no semicolons, comments, locks, `into`, writes, settings, sleep or file functions). A passing query is planned with `explain` as the copilot role before it runs.
+- Why: the guard stops obvious misuse in-process; the explain catches bad SQL and privilege errors without executing; the role is the real boundary.
+
+### Typed tools use the service client; only raw SQL uses the copilot role
+- What: nine tools run fixed queries we wrote, selecting masked columns and truncating ticket bodies to 500 characters. `run_readonly_query` is the only path where model-written SQL reaches Postgres, and it runs as `copilot`.
+- Why: CLAUDE.md §7 says the model never gets raw SQL except through that one tool. Fixed queries need the joins and settings the views do not expose.
+
+### Manual streaming loop, not the SDK tool runner
+- What: `runCopilot` streams each turn with `messages.stream`, executes tool_use blocks, appends tool_result, stops at end_turn or after 8 calls, then makes one last turn with `tool_choice: none` so the model still answers.
+- Why: the transparency panel needs per-call timing and row counts, the cap needs a graceful last turn, and the route needs a custom SSE transport. The tool runner is beta and hides those seams.
+
+### Last login is derived, not stored
+- What: "days since last login" is the latest customer-actor kit event or check-in.
+- Why: §5 has no login table, and adding a column would change the schema for one question.
+
+### Effort defaults to medium
+- What: `output_config.effort` comes from `CLAUDE_EFFORT`, validated against low, medium, high, xhigh, max; anything else falls back to medium. Sonnet 5 runs adaptive thinking, so no thinking parameter is sent.
+- Why: the copilot answers factual questions through tools where latency matters more than depth. Raise it per deployment if answers feel thin.
+
+### Ticket summaries are JSON in text, validated by zod, retried once
+- What: the summariser asks for one JSON object, parses the first `{...}`, validates against `aiSummarySchema`, and re-asks once with the validation error before giving up.
+- Why: one plain request is easier to explain than structured-output configuration, and the schema check is what makes the cache trustworthy.
+
+### Confirm is the whole action
+- What: Confirm and Reject set `pending_actions.status` and `decided_at`. No send exists.
+- Why: Klaviyo, SendGrid and Twilio are on the cut list; the table is the audit trail a later integration would consume.
