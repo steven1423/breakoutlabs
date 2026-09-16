@@ -18,7 +18,8 @@
     "gen:types": "pnpm dlx supabase@2.117.0 gen types typescript --project-id \"$SUPABASE_PROJECT_REF\" --schema public > lib/db/types.ts",
     "seed": "node supabase/seed.mts",
     "sweep": "node scripts/sweep.mts",
-    "eval": "node scripts/eval.mts"
+    "eval": "node scripts/eval.mts",
+    "discover": "node scripts/discover.mts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.126.0",
