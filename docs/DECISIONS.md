@@ -220,3 +220,67 @@ Every non-obvious choice gets an entry: what, why, the alternative considered. N
 ### The model is told the view schema and its call budget
 - What: the `run_readonly_query` description lists every masked view and its columns; the system prompt says explicitly that "run a query" or "SQL" means that tool, that "send", "text" or "nudge" means look up the recipients and call `propose_action` once per customer, and that there are at most 8 tool calls per question. `get_kit_timeline` now returns the kit's tickets so a kit code leads to a ticket id in one typed call.
 - Why: eval failures traced to missing facts, not model quality: six SQL attempts guessing column names, a refusal to nudge because the old rule said "decline any send", and a search for a ticket id that no typed tool exposed. Giving the model the facts fixed each case; loosening the evals would have hidden them.
+
+## M4 — Growth
+
+### Last 12 uploads come from the uploads playlist, not a second search
+- What: enrichment reads `playlistItems.list` on the channel's uploads playlist (1 unit) and then one `videos.list` batch (1 unit), instead of the `search.list channelId=… order=date` call §8.2 names (100 units, and one of the 60 daily searches).
+- Why: a 40-channel run would otherwise cost 54 of the 60 daily search calls and about 5,400 units, leaving no room for a retry. A full run now costs 14 searches and about 1,500 units. Agreed with Steven in the M4 plan.
+
+### Every API response is cached for a day in `api_cache`
+- What: adapters look up `api_cache` by request key before calling out; a hit is served without spending quota. Rows enriched from a cached response still carry `enriched_at` from the cache's fetch time.
+- Why: quota is the scarce thing, re-runs must be cheap, and the cache is what makes the snapshot reproducible. A day is short enough that the demo shows current numbers.
+- Alternative: no cache and a smaller run. Rejected: a second Discover click on demo day would fail on quota.
+
+### Each query is capped so all seven contribute
+- What: discovery asks for `ceil(limit / queries)` results per query and type, takes the first 40 unique channels, then enriches.
+- Why: the first run let "hormonal acne journey" fill all 40 slots and never ran the other six queries. Breadth across PCOS, spironolactone and accutane content is the point of the query list.
+
+### The snapshot is the handles from one run, written as a TypeScript module
+- What: `pnpm discover` writes `lib/synthetic/youtube-snapshot.ts` with exactly the channels that run found; the seed appends them as `data_status='seeded'`, `source='youtube_api'` rows after the campaign draws so the story campaigns do not move.
+- Why: §12 wants 40 cached YouTube creators that reproduce under `pnpm seed`, and honest labels: a snapshot is not Live until the running build re-fetches it. A `.ts` module avoids JSON import attributes, which differ between Node, Vite and Turbopack.
+
+### Cross-links are rows, not a relation
+- What: handles found in channel and video descriptions become Seeded `creators` rows (`source='youtube_api'`) with `ignoreDuplicates`, so an existing seeded creator is never overwritten. The creator page re-extracts handles from the stored bio to show its cross-links.
+- Why: §5 has no link table and adding one would change the schema for a display detail. Re-extracting from the bio is pure and costs nothing.
+
+### Instagram and search adapters are built, tested on fixtures, and hidden when unconfigured
+- What: `InstagramSource` (Business Discovery, engagement over the last 12 posts, errors stored in `creators.enrich_error`) and `SearchSource` (Serper, handles from result URLs only) exist behind `META_*` and `SEARCH_API_KEY`. The UI shows "Not configured" with the Seeded badge instead of hiding the button.
+- Why: §16 says never fake an integration. The keys are absent in this environment, so neither adapter has been exercised against the live API; the parsers are unit-tested on the documented response shapes.
+
+### The price band is computed in code, not by the model
+- What: `priceBand()` applies the §8.6 tiers and the ±30% engagement adjustment. The card prompt receives the estimate and must echo it; after validation the computed values overwrite whatever the model returned.
+- Why: a number a founder will quote in a negotiation should come from a rule he can read, not from a sample. The card's judgement (fit, segment, angle, draft) is the model's; the arithmetic is ours.
+
+### One `completeJson` helper for the summariser and the card
+- What: `lib/copilot/json.ts` asks the provider once, validates with zod, and retries once with the validation error. The M3 summariser now calls it.
+- Why: two copies of the same retry loop would drift. This is the one refactor in M4 and it is its own commit.
+
+### Attribution metrics are pure and nulls mean "no denominator"
+- What: `campaignMetrics()` returns `null` for CAC, cost per registered, cost per retest and retest rate when the denominator is zero; the UI renders a dash. LTV counts at most three membership months per attributed customer.
+- Why: a new campaign with no retests should sort last on cost-per-retest, not show Infinity. Three months is the 90-day window §8.7 defines.
+
+### Posterior Beta(1 + retested, 1 + orders − retested), seeded by ISO week
+- What: the uniform prior updated by each campaign's attributed orders and retests. The weekly run's random source is `seedrandom("allocator-<ISO week>")`, so pressing Run twice in one week reproduces the draw; a new week draws afresh.
+- Why: §8.8 allows an informed prior; the attribution rows are the best information we have. Seeding by week makes the demo repeatable and the tests exact.
+
+### Floor and cap by water-filling, cents by largest remainder
+- What: shares ∝ sampled θ are clamped to [5%, 40%], and the shortfall is handed to campaigns with headroom in proportion to it until nothing moves. Whole cents sum to the budget; leftover cents go one each to the largest remainders.
+- Why: the first implementation could leave money unspent when every campaign was pinned at a bound (test case: two at the cap, one at the floor). Water-filling always spends the budget when 5%·n ≤ 100% ≤ 40%·n.
+
+### Density curves are inline SVG, not recharts
+- What: `BetaCurve` draws the Beta density with one SVG path and marks the sampled draw; it renders on the server.
+- Why: the plan listed recharts, but a 40-point sparkline without axes does not need a chart library or a client bundle. Recharts stays reserved for the M5 model and M6 intelligence charts, where axes and tooltips matter.
+
+### The leaderboard reorder is a FLIP transition on the rows
+- What: the client component records each row's top before the re-render, then animates from the old offset to zero with the Web Animations API. `prefers-reduced-motion` skips the animation.
+- Why: §14 allows motion only in response to actions and no animation library. FLIP is twenty lines and the rows stay real table rows.
+
+### Email addresses are redacted at ingestion
+- What: `redactEmails()` runs on every bio, description and title an adapter returns before the row is built, so `creators` never holds an address, and the seed's privacy test (no email anywhere in the dataset) covers the YouTube snapshot too.
+- Why: channel descriptions carry business emails. They are public, but §16 says never store a real email, and the rule is simpler with no exceptions. The first snapshot failed the privacy test; this is the fix.
+
+### One-shot Gemini calls get the same 8,000-token limit as streamed turns
+- What: `complete()` on the Gemini provider had `maxOutputTokens: 1000`; it is now 8,000, matching `streamTurn()`.
+- Why: Gemini counts thinking tokens against the output limit. The creator card for a long channel description spent 788 tokens thinking and was cut off at 196 tokens of JSON (finish reason MAX_TOKENS, measured). The M3 ticket summaries were shorter and passed by luck.
+
