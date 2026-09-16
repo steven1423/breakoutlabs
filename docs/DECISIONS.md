@@ -172,7 +172,7 @@ Every non-obvious choice gets an entry: what, why, the alternative considered. N
 - Why: CLAUDE.md §7 says the model never gets raw SQL except through that one tool. Fixed queries need the joins and settings the views do not expose.
 
 ### Manual streaming loop, not the SDK tool runner
-- What: `runCopilot` streams each turn with `messages.stream`, executes tool_use blocks, appends tool_result, stops at end_turn or after 8 calls, then makes one last turn with `tool_choice: none` so the model still answers.
+- What: `runCopilot` streams each turn through a `ModelProvider`, executes the tool calls it returns, appends the results, stops at end_turn or after 8 calls, then makes one last turn with tools disabled so the model still answers.
 - Why: the transparency panel needs per-call timing and row counts, the cap needs a graceful last turn, and the route needs a custom SSE transport. The tool runner is beta and hides those seams.
 
 ### Last login is derived, not stored
@@ -190,3 +190,33 @@ Every non-obvious choice gets an entry: what, why, the alternative considered. N
 ### Confirm is the whole action
 - What: Confirm and Reject set `pending_actions.status` and `decided_at`. No send exists.
 - Why: Klaviyo, SendGrid and Twilio are on the cut list; the table is the audit trail a later integration would consume.
+
+### Gemini is the demo provider; Anthropic stays the default
+- What: `MODEL_PROVIDER=gemini` routes the copilot and the ticket summariser through Gemini (`GEMINI_API_KEY`, `GEMINI_MODEL`, default `gemini-2.5-flash`). Unset or `anthropic` keeps the CLAUDE.md path (`ANTHROPIC_API_KEY`, `CLAUDE_MODEL`). The badge reason names the vendor and model that answered.
+- Why: the Anthropic account had no credits when the M3 evals were due, and the demo is a video, not a code review. Gemini's free tier ran all 15 evals. Steven chose this; it is an environment switch, not a code fork.
+- Alternative: wait for Anthropic credits. Rejected because the M3 definition of done needs the evals to pass now and nothing in the product depends on which vendor answers.
+
+### One `ModelProvider` interface, two adapters
+- What: `lib/copilot/provider.ts` defines a neutral turn (`streamTurn`) and a one-shot `complete`. `providers/anthropic.ts` and `providers/gemini.ts` translate the neutral history to each vendor's shape and back; the loop, tools, guard and evals never see vendor types. Each adapter keeps the raw assistant parts so a replayed turn is byte-identical (Anthropic content blocks, Gemini parts with thought signatures).
+- Why: the loop is the part a CTO reads; it should not change when the vendor does. Retries on 429/503/529 live in the loop once.
+- Alternative: a `switch` inside the loop. Rejected because every vendor difference (tool_choice vs omitting tools, tool_result vs functionResponse) would leak into the part that is supposed to be simple.
+
+### `@google/genai` is the one dependency beyond §3
+- What: the official Google SDK, pinned exactly. It is only imported by the Gemini adapter and `createProvider()`.
+- Why: the demo override needs it; hand-rolling the streaming and function-calling wire format would be more code to explain than the SDK.
+
+### Effort maps to a Gemini thinking budget
+- What: `CLAUDE_EFFORT` low, medium, high, xhigh, max become `thinkingBudget` 0, 1024, 4096, -1, -1 (dynamic) on Gemini. Anthropic keeps `output_config.effort`.
+- Why: one env var controls depth on both vendors, so the docs and the demo setup do not fork.
+
+### Gemini runs at temperature 0
+- What: both Gemini calls set `temperature: 0`. Anthropic is left at its default.
+- Why: at the default temperature Gemini picked a different tool for the same question on repeated runs (get_metric instead of run_readonly_query for "run a query"). The copilot is a data tool; reproducible tool choice matters more than varied prose. Evals passed 15/15 on two consecutive runs after the change.
+
+### An empty model turn is retried, not shown
+- What: when Gemini returns neither text nor a function call (its `MALFORMED_FUNCTION_CALL` finish, or a dropped part), the adapter throws a retryable `EmptyTurnError` and the loop re-samples the turn on the same 2 s, 4 s, 8 s schedule as rate limits.
+- Why: it happened once in the eval runs and produced a blank answer. Re-sampling is the documented remedy and costs one call.
+
+### The model is told the view schema and its call budget
+- What: the `run_readonly_query` description lists every masked view and its columns; the system prompt says explicitly that "run a query" or "SQL" means that tool, that "send", "text" or "nudge" means look up the recipients and call `propose_action` once per customer, and that there are at most 8 tool calls per question. `get_kit_timeline` now returns the kit's tickets so a kit code leads to a ticket id in one typed call.
+- Why: eval failures traced to missing facts, not model quality: six SQL attempts guessing column names, a refusal to nudge because the old rule said "decline any send", and a search for a ticket id that no typed tool exposed. Giving the model the facts fixed each case; loosening the evals would have hidden them.

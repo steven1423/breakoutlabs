@@ -27,7 +27,7 @@ Postgres on Supabase. Four migrations under `supabase/migrations` (types and tab
 
 ## Copilot (M3)
 
-`lib/copilot`: `guard.ts` (pure SQL whitelist), `tools.ts` (ten zod-typed tools over the service client; `run_readonly_query` calls `copilot_run_readonly_query`, which switches to the `copilot` role and can only read masked views in schema `copilot`), `loop.ts` (streaming tool-use loop, max 8 calls, transparency records), `summarize.ts` (ticket summary cached to `tickets.ai_summary`), `index.ts` (wiring). `POST /api/copilot` streams server-sent events to `components/copilot.tsx`; every answer carries a transparency panel. Proposals land in `pending_actions` and are confirmed or rejected by server actions. `pnpm eval` runs `evals/copilot.json`.
+`lib/copilot`: `guard.ts` (pure SQL whitelist), `tools.ts` (ten zod-typed tools over the service client; `run_readonly_query` calls `copilot_run_readonly_query`, which switches to the `copilot` role and can only read masked views in schema `copilot`), `provider.ts` (the vendor-neutral `ModelProvider` interface) with `providers/anthropic.ts` and `providers/gemini.ts` behind `MODEL_PROVIDER`, `loop.ts` (streaming tool-use loop over a provider, max 8 calls, retries, transparency records), `summarize.ts` (ticket summary cached to `tickets.ai_summary`), `index.ts` (wiring, `createProvider()`). `POST /api/copilot` streams server-sent events to `components/copilot.tsx`; every answer carries a transparency panel. Proposals land in `pending_actions` and are confirmed or rejected by server actions. `pnpm eval` runs `evals/copilot.json`.
 
 ## Loop
 
