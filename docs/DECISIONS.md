@@ -113,3 +113,41 @@ Every non-obvious choice gets an entry: what, why, the alternative considered. N
 ### `"type": "module"` in package.json
 - What: the package is ESM.
 - Why: the seed and migrate scripts run on Node's built-in TypeScript support, which needs the module type to be explicit or warns on every run. Next 16, Vitest and ESLint all accept ESM packages.
+
+## M2 — State machine and stuck sweep
+
+### The transition table is data, and the database layer is one file
+- What: `lib/state-machine/transitions.ts` holds a map of legal next states and a pure `transition()` that returns the new kit plus the event to record. `lib/state-machine/db.ts` is the only code that writes `kits` and `kit_events`.
+- Why: CLAUDE.md §6 asks for a pure machine with no database calls. Keeping writes in one file means every state change in the product produces an event, which the timeline depends on.
+- Alternative: transitions inside a database trigger. Rejected because the rules would live where tests cannot reach them.
+
+### Cancel and refund from any non-terminal state
+- What: `cancelled` and `refunded` are legal exits from every non-terminal state.
+- Why: §6 names them terminal but gives no entry rule, and support needs both from anywhere.
+- Alternative: refund only after `sample_received`. Rejected as a business rule we do not know.
+
+### Retention states get nudges, not tickets
+- What: kits stuck in `viewed` or `retest_due` count as stuck and get a nudge proposal, but the sweep never opens a support ticket for them.
+- Why: about 300 baseline kits sit past the `retest_due` SLA. One ticket each would bury the 40 ops exceptions nobody else is watching. A lapsed customer is a growth problem, and the nudge is the growth action.
+- Alternative: a ticket per lapsed customer. Rejected because nobody would work that queue.
+
+### The sweep is a planner plus a writer
+- What: `planSweep()` is pure and returns what to write; `sweepStuckKits()` loads, plans, writes. Idempotency comes from the planner reading open tickets and proposed nudges.
+- Why: the idempotency test then runs in memory with a fake store, and a second sweep against the real database is shown to write nothing in the PR.
+- Alternative: unique constraints in the database. Rejected for M2 because "one open ticket per kit" is a rule about status, which a unique index cannot express cleanly.
+
+### An open customer ticket is classified, not duplicated
+- What: when a stuck kit already has an open ticket with no `likely_cause`, the sweep sets the cause on it instead of opening a second one.
+- Why: the customer usually complains before the SLA passes. The ticket they opened is the one support should work, now labelled.
+
+### SLA hours come from settings, merged over the §6 defaults
+- What: `mergeSlaHours()` overlays `settings.sla_hours` on the code defaults, ignoring unknown states and bad values.
+- Why: §6 says overridable; the defaults keep the machine working when the row is missing or malformed.
+
+### The cron route refuses without a secret
+- What: `POST /api/sweep` needs `Authorization: Bearer CRON_SECRET`, and returns 503 if the secret is not configured.
+- Why: the route writes tickets. An unconfigured deploy should not be sweepable by anyone who finds the URL. The staff button on `/ops` is a server action and does not use the route.
+
+### Node 22.18 or newer
+- What: `engines.node` is now `>=22.18`.
+- Why: the seed, migrate and sweep scripts run TypeScript through Node's built-in type stripping, which shipped unflagged in 22.18. CLAUDE.md says Node 20+; that predates the scripts.
