@@ -19,7 +19,7 @@ lib/db/                     Supabase clients: server (cookies, RLS) and browser
 
 ## Data (M1)
 
-Not built yet. Migrations under `supabase/migrations`, generated types in `lib/db/types.ts`, synthetic seed under `lib/synthetic`.
+Postgres on Supabase. Four migrations under `supabase/migrations` (types and tables, roles and RLS, settings and seed support, a grant), applied over HTTPS by `scripts/migrate.mts`. Generated types live in `lib/db/types.ts`. The synthetic generator in `lib/synthetic` is pure: one `Rng` seeded with `breakoutos-v1` drives customers, kits and events, panels and biomarkers, engagement, tickets, creators and attribution, in that order. `supabase/seed.mts` wipes and reloads the tables through PostgREST. Server pages read through `createServiceSupabase()` in `lib/db/server.ts`.
 
 ## Copilot (M3)
 

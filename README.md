@@ -25,8 +25,17 @@ Requires Node 20 or newer and pnpm 10.
 | `pnpm test` | Runs the Vitest suite once |
 | `pnpm typecheck` | TypeScript strict check |
 | `pnpm lint` | ESLint with Next's rules |
+| `pnpm migrate` | Applies unapplied SQL migrations over HTTPS (needs the access token and project ref) |
+| `pnpm gen:types` | Regenerates `lib/db/types.ts` from the live schema |
+| `pnpm seed` | Wipes and reloads the synthetic dataset; prints counts and a checksum |
 
-`pnpm seed`, `pnpm eval`, `pnpm discover` and `pnpm sweep` are added by the milestones that build them.
+`pnpm eval`, `pnpm discover` and `pnpm sweep` are added by the milestones that build them.
+
+## Database
+
+1. `pnpm migrate` applies `supabase/migrations/*.sql` in order and records them in `schema_migrations`.
+2. `pnpm gen:types` writes the TypeScript types for the schema.
+3. `pnpm seed` loads 500 synthetic customers and everything attached to them. Run it twice and the checksum must not change.
 
 ## Honesty labels
 

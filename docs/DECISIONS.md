@@ -63,3 +63,53 @@ Every non-obvious choice gets an entry: what, why, the alternative considered. N
 - What: `.env.example` sets `CLAUDE_MODEL=claude-sonnet-5`; `CLAUDE_EFFORT` is reserved for the copilot's effort level and is proposed in the M3 plan.
 - Why: CLAUDE.md §3 and §15 name that default. Nothing in M0 calls the model.
 - Alternative: none.
+
+## M1 — Schema and synthetic data
+
+### Migrations run over HTTPS through the Management API
+- What: `pnpm migrate` posts each `supabase/migrations/*.sql` file to the Management API SQL endpoint and records it in `schema_migrations`. `pnpm gen:types` uses the same access token.
+- Why: the project's direct Postgres host is IPv6-only and this sandbox has no IPv6, so `supabase db push` cannot connect. The SQL endpoint runs as the `postgres` role, which is enough for DDL.
+- Alternative: the IPv4 Supavisor pooler. Rejected for migrations because it needs a password in the environment and a Postgres client; M3 may still need it for the copilot role.
+
+### Forward-only migrations, even for a fix
+- What: the grant that lets `postgres` impersonate `staff` is its own file (`0004`) rather than an edit to `0002`.
+- Why: applied files are never edited, so any environment can be brought to the same state by running the list in order.
+- Alternative: reset the database and re-run. Rejected because it is a destructive step for a one-line change.
+
+### `staff` is a real role with policies; the server uses the secret key for now
+- What: RLS is on for every table. Only `staff` has policies (read everything, write kits, kit_events, tickets, pending_actions, settings). `anon` and `authenticated` have no policies and see zero rows. The Next server reads through the secret key (`service_role`), which bypasses RLS.
+- Why: personas are a switcher, not accounts (cut list), so there is no user JWT to carry a role. The policies still exist and are exercised through `set role staff` in verification, so wiring a real staff JWT later is a change to the client, not the schema.
+- Alternative: mint a `staff` JWT on the server. Rejected for M1 as extra machinery with no user model behind it.
+
+### Determinism: fixed "today", every id and timestamp from the generator
+- What: the generator anchors "today" to a constant (`TODAY_MS`, 2026-09-16) and supplies every uuid and timestamp itself. The seed script never lets the database default a column.
+- Why: the definition of done is identical counts and checksums across two runs. A `now()` default or a real clock would break that silently.
+- Alternative: derive "today" from the run date. Rejected; bump the constant before the demo instead.
+
+### Exact quotas for plan, age, sex and channel
+- What: those four fields are assigned from shuffled quota lists so their shares match §12 exactly; segment, region, consent and retest are drawn per person.
+- Why: at n=500 a plain weighted draw can miss a share by two standard deviations, and the tests would fail for a good seed.
+- Alternative: widen test tolerances. Rejected because exact shares are easier to explain.
+
+### Driver markers are always out of range at baseline
+- What: a segment's driver markers are redrawn (at most four times, then clamped just past the range) until they flag on the driven side.
+- Why: §12 says "androgen → high testosterone/DHEA-S, low SHBG". A normal draw around the driven center still lands in range about one time in six, which would make the segment rule false for some customers.
+- Alternative: keep the noise. Rejected.
+
+### Non-retesting customers accumulate in `retest_due`
+- What: about 60% of baseline kits sit in `retest_due` because their customers never ordered a retest. The state machine has no "lapsed" state.
+- Why: that is the retest leak the product is about. M2 will report those separately from ops exceptions so the stuck queue is not swamped.
+- Alternative: invent a `lapsed` state. Rejected; §5's enum is the spec.
+
+### `reset_synthetic_data()` is a security-definer function
+- What: the seed calls one RPC that truncates the synthetic tables; only `service_role` may execute it.
+- Why: PostgREST has no truncate, and a filtered delete over fourteen tables is slower and easier to get wrong.
+- Alternative: run the truncate through the Management API. Rejected so `pnpm seed` needs only the secret key.
+
+### The 40 cached YouTube creators wait for M4
+- What: M1 seeds the 30 Instagram and TikTok creators and all 15 campaigns; the YouTube snapshot lands with the adapter that produces it.
+- Why: the snapshot is the output of a live pull, and there is no adapter yet.
+
+### `"type": "module"` in package.json
+- What: the package is ESM.
+- Why: the seed and migrate scripts run on Node's built-in TypeScript support, which needs the module type to be explicit or warns on every run. Next 16, Vitest and ESLint all accept ESM packages.
