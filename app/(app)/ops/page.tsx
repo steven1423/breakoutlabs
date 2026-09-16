@@ -6,7 +6,7 @@ import { RunSweep } from "@/components/run-sweep";
 import { StateTrack } from "@/components/state-track";
 import { Copilot } from "@/components/copilot";
 import { PendingActions } from "@/components/pending-actions";
-import { isCopilotConfigured } from "@/lib/copilot/env";
+import { copilotLabel, isCopilotConfigured } from "@/lib/copilot/env";
 import { humanise, listPendingActions, loadOpsOverview, type KitListRow, type OpsOverview } from "@/lib/ops/queries";
 import { parsePersona, withPersona, type Persona } from "@/lib/personas";
 
@@ -45,7 +45,7 @@ export default async function OpsPage({ searchParams }: Props) {
       <section className="mt-10">
         <h2 className="text-24">Copilot</h2>
         <p className="text-15 text-muted">Reads the database through typed tools and one guarded query. It never sends anything; it proposes.</p>
-        <Copilot configured={isCopilotConfigured()} />
+        <Copilot configured={isCopilotConfigured()} label={copilotLabel()} />
       </section>
 
       <section className="mt-10">

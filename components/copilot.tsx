@@ -15,7 +15,7 @@ const EXAMPLES = [
 ];
 
 /** Plain-English questions over the database, with the answer streamed and every tool call shown. */
-export function Copilot({ configured }: { configured: boolean }) {
+export function Copilot({ configured, label }: { configured: boolean; label: string }) {
   const router = useRouter();
   const [turns, setTurns] = useState<Turn[]>([]);
   const [question, setQuestion] = useState("");
@@ -97,7 +97,7 @@ export function Copilot({ configured }: { configured: boolean }) {
         <input
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
-          placeholder={configured ? "Ask about kits, customers, tickets or metrics" : "Copilot not configured: set ANTHROPIC_API_KEY"}
+          placeholder={configured ? `Ask about kits, customers, tickets or metrics (${label})` : `Copilot not configured: set the model API key (${label})`}
           disabled={!configured || busy}
           aria-label="Question for the copilot"
           className="flex-1 rounded-control border border-line bg-bg px-3 py-2 text-15 disabled:opacity-60"

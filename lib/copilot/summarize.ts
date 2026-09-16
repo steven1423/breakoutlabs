@@ -1,7 +1,7 @@
-import type Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import type { ServiceClient } from "../db/service.ts";
 import type { Database } from "../db/types.ts";
+import type { ModelProvider } from "./provider.ts";
 import type { AiSummary } from "./tools.ts";
 
 const LIKELY_CAUSES = ["unlinked_kit", "portal_lockout", "backorder", "shipping_delay", "billing", "registration_mismatch", "refund_request", "clinical_question", "other"] as const;
@@ -13,13 +13,11 @@ export const aiSummarySchema = z.object({
   suggested_reply: z.string().min(1).max(900),
 });
 
-type SummaryClient = { messages: { create: (params: Anthropic.MessageCreateParamsNonStreaming) => Promise<Anthropic.Message> } };
-
 const INSTRUCTIONS = `Summarise a support ticket for a BreakoutLabs support agent. Reply with one JSON object and nothing else:
 {"summary": "one or two sentences", "likely_cause": one of unlinked_kit|portal_lockout|backorder|shipping_delay|billing|registration_mismatch|refund_request|clinical_question|other, "evidence": ["short quotes or facts from the ticket and kit state, up to 5"], "suggested_reply": "a plain, warm reply under 120 words that states the next step; never promise a refund or a medical opinion"}`;
 
 /** Summary from the cache when present, otherwise from the model, then cached on the ticket. */
-export async function summarizeTicket(db: ServiceClient, client: SummaryClient, model: string, ticketId: string): Promise<AiSummary> {
+export async function summarizeTicket(db: ServiceClient, provider: ModelProvider, ticketId: string): Promise<AiSummary> {
   const { data: ticket, error } = await db
     .from("tickets")
     .select("id, subject, body, status, channel, opened_at, likely_cause, ai_summary, kit:kits(kit_code, state, state_entered_at), customer:customers(first_name, plan)")
@@ -41,22 +39,17 @@ export async function summarizeTicket(db: ServiceClient, client: SummaryClient, 
     customer_first_name: ticket.customer?.first_name,
     plan: ticket.customer?.plan,
   };
-  const summary = await askModel(client, model, JSON.stringify(context));
+  const summary = await askModel(provider, JSON.stringify(context));
   const save = await db.from("tickets").update({ ai_summary: summary as Database["public"]["Tables"]["tickets"]["Update"]["ai_summary"] }).eq("id", ticketId);
   if (save.error) throw new Error(save.error.message);
   return summary;
 }
 
-async function askModel(client: SummaryClient, model: string, ticketJson: string): Promise<AiSummary> {
+async function askModel(provider: ModelProvider, ticketJson: string): Promise<AiSummary> {
   let lastError = "";
   for (let attempt = 0; attempt < 2; attempt++) {
-    const response = await client.messages.create({
-      model,
-      max_tokens: 1000,
-      system: INSTRUCTIONS,
-      messages: [{ role: "user", content: attempt === 0 ? ticketJson : `${ticketJson}\n\nYour previous reply was not valid: ${lastError}. Reply with the JSON object only.` }],
-    });
-    const text = response.content.filter((b): b is Anthropic.TextBlock => b.type === "text").map((b) => b.text).join("");
+    const user = attempt === 0 ? ticketJson : `${ticketJson}\n\nYour previous reply was not valid: ${lastError}. Reply with the JSON object only.`;
+    const text = await provider.complete(INSTRUCTIONS, user);
     const parsed = parseJsonObject(text);
     const valid = aiSummarySchema.safeParse(parsed);
     if (valid.success) return valid.data;

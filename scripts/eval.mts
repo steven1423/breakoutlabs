@@ -1,6 +1,6 @@
 /**
  * Runs evals/copilot.json through the real copilot against the seeded database.
- * Usage: pnpm eval [caseId]   (needs ANTHROPIC_API_KEY and the Supabase secret key)
+ * Usage: pnpm eval [caseId]   (needs the provider key from copilotKeyName() and the Supabase secret key)
  */
 import { readFile } from "node:fs/promises";
 import { createCopilot } from "../lib/copilot/index.ts";
@@ -25,6 +25,7 @@ async function main() {
   const file = JSON.parse(await readFile("evals/copilot.json", "utf8")) as { cases: Case[] };
   const cases = file.cases.filter((c) => !only || c.id === only);
   const copilot = createCopilot();
+  console.log(`provider ${copilot.provider.name}  model ${copilot.provider.model}\n`);
   let passed = 0;
   for (const c of cases) {
     const started = Date.now();
@@ -34,7 +35,11 @@ async function main() {
     if (ok) passed++;
     console.log(`${ok ? "PASS" : "FAIL"} ${c.id} (${result.calls.length} calls, ${Date.now() - started} ms)`);
     for (const f of failures) console.log(`     - ${f}`);
-    if (!ok) console.log(`     answer: ${result.answer.slice(0, 300).replace(/\n/g, " ")}`);
+    if (!ok) {
+      console.log(`     stop: ${result.stopReason}${result.capped ? " (capped)" : ""}`);
+      for (const k of result.calls) console.log(`     call ${k.index} ${k.name} ${k.error ? `error: ${k.error}` : `rows: ${k.rowCount ?? "-"}`}`);
+      console.log(`     answer: ${result.answer.slice(0, 300).replace(/\n/g, " ")}`);
+    }
   }
   console.log(`\n${passed}/${cases.length} passed`);
   if (passed !== cases.length) process.exitCode = 1;

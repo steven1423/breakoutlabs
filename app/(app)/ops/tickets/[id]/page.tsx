@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
 import { aiSummarySchema } from "@/lib/copilot/summarize";
-import { isCopilotConfigured } from "@/lib/copilot/env";
+import { copilotKeyName, isCopilotConfigured } from "@/lib/copilot/env";
 import { summarizeTicketAction } from "@/lib/ops/actions";
 import { humanise, loadTicketDetail } from "@/lib/ops/queries";
 import { parsePersona, withPersona } from "@/lib/personas";
@@ -75,7 +75,7 @@ export default async function TicketPage({ params, searchParams }: Props) {
               </div>
             </div>
           ) : (
-            <p className="mt-2 text-15 text-muted">{configured ? "Not summarized yet. The copilot reads the ticket and the kit state, then drafts a reply for you to edit." : "Copilot not configured: set ANTHROPIC_API_KEY."}</p>
+            <p className="mt-2 text-15 text-muted">{configured ? "Not summarized yet. The copilot reads the ticket and the kit state, then drafts a reply for you to edit." : `Copilot not configured: set ${copilotKeyName()}.`}</p>
           )}
         </div>
       </section>

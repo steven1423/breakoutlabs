@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createCopilot } from "@/lib/copilot";
-import { isCopilotConfigured } from "@/lib/copilot/env";
+import { copilotKeyName, isCopilotConfigured } from "@/lib/copilot/env";
 import { publicRecord, type CopilotEvent } from "@/lib/copilot/loop";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +14,7 @@ const bodySchema = z.object({
 /** Streams the copilot's answer as server-sent events: text deltas, each tool call, then done. */
 export async function POST(request: Request) {
   if (!isCopilotConfigured()) {
-    return NextResponse.json({ error: "Not configured: ANTHROPIC_API_KEY" }, { status: 503 });
+    return NextResponse.json({ error: `Not configured: ${copilotKeyName()}` }, { status: 503 });
   }
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid body" }, { status: 400 });
