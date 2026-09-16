@@ -1,7 +1,5 @@
 import { createServerClient } from "@supabase/ssr";
-import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
-import type { Database } from "@/lib/db/types";
 import { readPublicEnv } from "@/lib/env";
 
 /**
@@ -27,13 +25,4 @@ export async function createServerSupabase() {
   });
 }
 
-/**
- * Server-only client with the secret key. RLS is bypassed, so this is the staff read path
- * until accounts exist (docs/DECISIONS.md, M1). Never import from a client component.
- */
-export function createServiceSupabase() {
-  const url = readPublicEnv().NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!key) throw new Error("Missing or invalid env: SUPABASE_SERVICE_ROLE_KEY");
-  return createClient<Database>(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
-}
+export { createServiceSupabase } from "./service";
