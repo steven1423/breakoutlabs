@@ -1,0 +1,104 @@
+@import "tailwindcss";
+
+/* Design tokens (CLAUDE.md §14). Dark is the default; light honours the viewer's setting. */
+:root {
+  --bg: #12222e;
+  --surface: #1a2f3d;
+  --raised: #223b4b;
+  --line: #2e4a5c;
+  --text: #e9f0f3;
+  --muted: #8fa5b3;
+  --accent: #b23a48;
+  --live: #4fb0a6;
+  --seeded: #d9a441;
+  --optimal: #4fb0a6;
+  --high: #b23a48;
+  --low: #d9a441;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f2f5f6;
+    --surface: #ffffff;
+    --raised: #e9eef0;
+    --line: #d3dce1;
+    --text: #12222e;
+    --muted: #4f6675;
+    /* Darker ink versions of the same hues so text on white stays readable. */
+    --accent: #9e2f3c;
+    --live: #2a7f77;
+    --seeded: #8f6410;
+    --optimal: #2a7f77;
+    --high: #9e2f3c;
+    --low: #8f6410;
+  }
+}
+
+/* Expose the tokens to Tailwind utilities: bg-surface, text-muted, border-line, font-display, rounded-panel. */
+@theme inline {
+  --color-*: initial;
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-raised: var(--raised);
+  --color-line: var(--line);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-live: var(--live);
+  --color-seeded: var(--seeded);
+  --color-optimal: var(--optimal);
+  --color-high: var(--high);
+  --color-low: var(--low);
+
+  --font-sans: var(--font-plex), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-fraunces), Georgia, serif;
+
+  /* Type scale 13 / 15 / 18 / 24 / 32 / 48 */
+  --text-13: 13px;
+  --text-13--line-height: 1.5;
+  --text-15: 15px;
+  --text-15--line-height: 1.55;
+  --text-18: 18px;
+  --text-18--line-height: 1.45;
+  --text-24: 24px;
+  --text-24--line-height: 1.3;
+  --text-32: 32px;
+  --text-32--line-height: 1.2;
+  --text-48: 48px;
+  --text-48--line-height: 1.1;
+
+  /* One radius for controls, one for panels. No shadows anywhere. */
+  --radius-control: 6px;
+  --radius-panel: 10px;
+  --shadow-*: initial;
+}
+
+html {
+  color-scheme: dark light;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.55;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--live);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
