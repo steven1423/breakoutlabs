@@ -92,17 +92,19 @@ export const getCustomer = tool({
 
 export const getKitTimeline = tool({
   name: "get_kit_timeline",
-  description: "A kit's current state, hours in state, SLA status, and every state transition with elapsed time, by kit code such as BL-4471-XK.",
+  description: "A kit's current state, hours in state, SLA status, every state transition with elapsed time, and the kit's tickets (id, subject, status), by kit code such as BL-4471-XK.",
   schema: z.object({ kit_code: kitCode }),
   run: async ({ kit_code }, { db, now }) => {
     const { data: kit, error } = await db.from("kits").select("id, customer_id, kit_code, sequence_no, state, state_entered_at, created_at").eq("kit_code", kit_code.toUpperCase()).maybeSingle();
     fail(error);
     if (!kit) return { rows: [], rowCount: 0, note: `No kit ${kit_code}` };
-    const [events, sla] = await Promise.all([
+    const [events, tickets, sla] = await Promise.all([
       db.from("kit_events").select("from_state, to_state, at, actor, note").eq("kit_id", kit.id).order("at"),
+      db.from("tickets").select("id, subject, status, likely_cause, opened_at").eq("kit_id", kit.id).order("opened_at", { ascending: false }),
       loadSlaHours(db),
     ]);
     fail(events.error);
+    fail(tickets.error);
     const status = slaStatus(kit, now, sla);
     const timeline = (events.data ?? []).map((e, i, all) => {
       const next = all[i + 1];
@@ -120,8 +122,9 @@ export const getKitTimeline = tool({
       stuck: status.stuck,
       likely_cause: status.cause,
       events: timeline,
+      tickets: tickets.data ?? [],
     };
-    return { rows: [row], rowCount: 1 + timeline.length };
+    return { rows: [row], rowCount: 1 + timeline.length + (tickets.data?.length ?? 0) };
   },
 });
 
@@ -277,7 +280,7 @@ export const getTicket = tool({
 
 export const summarizeTicket = tool({
   name: "summarize_ticket",
-  description: "AI summary of a ticket: summary, likely cause, evidence, suggested reply. Cached on the ticket.",
+  description: "AI summary of a ticket by ticket id: summary, likely cause, evidence, suggested reply. Cached on the ticket. Get the id from get_kit_timeline (lists a kit's tickets) or get_ticket.",
   schema: z.object({ ticket_id: z.uuid() }),
   run: async ({ ticket_id }, ctx) => {
     const summary = await ctx.summarizeTicket(ticket_id);
@@ -290,7 +293,7 @@ const GROUPS = ["plan", "channel", "segment"] as const;
 
 export const getMetric = tool({
   name: "get_metric",
-  description: "A headline metric, optionally grouped by plan, channel or segment. retest_rate = customers with a retest panel over customers whose baseline resulted at least 100 days ago.",
+  description: "One of four headline metrics (retest_rate, stuck_count, open_tickets, members_active), optionally grouped by plan, channel or segment. Not a general counter: for other counts use list_customers or run_readonly_query. retest_rate = customers with a retest panel over customers whose baseline resulted at least 100 days ago.",
   schema: z.object({ name: z.enum(METRICS), group_by: z.enum(GROUPS).optional() }),
   run: async ({ name, group_by }, { db, now }) => {
     const [customers, segments] = await Promise.all([
@@ -357,9 +360,24 @@ export const getMetric = tool({
   },
 });
 
+/** Columns of the masked views in schema copilot (migration 0005). The model sees this so its SQL names real columns. */
+export const COPILOT_SCHEMA = [
+  "customers(id, first_name, email_masked, region_state, age_band, sex, acquisition_channel, creator_code, plan, membership, membership_started_at, membership_months, consent_research, created_at)",
+  "kits(id, customer_id, kit_code, sequence_no, state, state_entered_at, created_at)",
+  "kit_events(id, kit_id, from_state, to_state, at, actor, note)",
+  "tickets(id, customer_id, kit_id, channel, subject, body, status, opened_at, likely_cause)",
+  "panels(id, kit_id, customer_id, sequence_no, collected_at, resulted_at)",
+  "biomarker_results(id, panel_id, marker, value, unit, ref_low, ref_high, flag)",
+  "customer_segments(customer_id, primary_segment, confidence, computed_at)",
+  "outcomes(customer_id, baseline_panel_id, retest_panel_id, markers_improved, severity_delta, improved, computed_at)",
+  "checkins(id, customer_id, at, severity_self_reported)",
+  "pending_actions(id, type, customer_id, status, proposed_by, created_at, decided_at)",
+  "settings(key, value)",
+].join("; ");
+
 export const runReadonlyQuery = tool({
   name: "run_readonly_query",
-  description: "Run one SELECT as the restricted copilot role over masked views (customers, kits, kit_events, tickets, panels, biomarker_results, customer_segments, outcomes, checkins, pending_actions, settings). Max 200 rows, 5 second timeout. Use only when no typed tool fits.",
+  description: `Run one SELECT as the restricted copilot role over masked views. Use when the user asks you to run a query or write SQL, or when no typed tool fits. Max 200 rows, 5 second timeout. Refer to views unqualified. Views and columns: ${COPILOT_SCHEMA}. Enum columns hold lowercase values (kit state, plan, primary_segment).`,
   schema: z.object({ sql: z.string().min(1).max(4000) }),
   run: async ({ sql }, { db }) => {
     const guarded = guardSql(sql);
@@ -396,13 +414,14 @@ export const COPILOT_TOOLS: ToolSpec[] = [
   searchCustomers, getCustomer, getKitTimeline, listStuckKits, listCustomers, getTicket, summarizeTicket, getMetric, runReadonlyQuery, proposeAction,
 ];
 
-/** The tool definitions the model sees. JSON schema is generated from the zod schema, so they cannot drift. */
+/** Vendor-neutral tool definitions. JSON schema is generated from the zod schema, so they cannot drift. */
+export function toToolDefinitions(specs: ToolSpec[] = COPILOT_TOOLS): { name: string; description: string; inputSchema: Record<string, unknown> }[] {
+  return specs.map((t) => ({ name: t.name, description: t.description, inputSchema: z.toJSONSchema(t.schema) as Record<string, unknown> }));
+}
+
+/** The same definitions in the Anthropic SDK's shape. */
 export function toAnthropicTools(specs: ToolSpec[] = COPILOT_TOOLS): Anthropic.Tool[] {
-  return specs.map((t) => ({
-    name: t.name,
-    description: t.description,
-    input_schema: z.toJSONSchema(t.schema) as Anthropic.Tool["input_schema"],
-  }));
+  return toToolDefinitions(specs).map((t) => ({ name: t.name, description: t.description, input_schema: t.inputSchema as Anthropic.Tool["input_schema"] }));
 }
 
 function groupBy<T>(items: T[], key: (item: T) => string): Map<string, T[]> {
