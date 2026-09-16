@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { ServiceClient } from "../db/service.ts";
 import type { Database } from "../db/types.ts";
+import { completeJson } from "./json.ts";
 import type { ModelProvider } from "./provider.ts";
 import type { AiSummary } from "./tools.ts";
 
@@ -45,26 +46,6 @@ export async function summarizeTicket(db: ServiceClient, provider: ModelProvider
   return summary;
 }
 
-async function askModel(provider: ModelProvider, ticketJson: string): Promise<AiSummary> {
-  let lastError = "";
-  for (let attempt = 0; attempt < 2; attempt++) {
-    const user = attempt === 0 ? ticketJson : `${ticketJson}\n\nYour previous reply was not valid: ${lastError}. Reply with the JSON object only.`;
-    const text = await provider.complete(INSTRUCTIONS, user);
-    const parsed = parseJsonObject(text);
-    const valid = aiSummarySchema.safeParse(parsed);
-    if (valid.success) return valid.data;
-    lastError = valid.error.issues.map((i) => `${i.path.join(".")} ${i.message}`).join("; ") || "not JSON";
-  }
-  throw new Error(`Ticket summary was not valid JSON after two attempts: ${lastError}`);
-}
-
-function parseJsonObject(text: string): unknown {
-  const start = text.indexOf("{");
-  const end = text.lastIndexOf("}");
-  if (start === -1 || end === -1) return null;
-  try {
-    return JSON.parse(text.slice(start, end + 1));
-  } catch {
-    return null;
-  }
+function askModel(provider: ModelProvider, ticketJson: string): Promise<AiSummary> {
+  return completeJson(provider, INSTRUCTIONS, ticketJson, aiSummarySchema, "ticket summary");
 }
