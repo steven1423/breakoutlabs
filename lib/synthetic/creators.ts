@@ -4,6 +4,7 @@ import type { Person } from "./customers.ts";
 import { iso, type KitBundle } from "./kits.ts";
 import type { PanelSummary } from "./panels.ts";
 import type { Rng } from "./rng.ts";
+import { YOUTUBE_SNAPSHOT, type YoutubeSnapshotRow } from "./youtube-snapshot.ts";
 
 type Tables = Database["public"]["Tables"];
 export type CreatorInsert = Tables["creators"]["Insert"] & { id: string };
@@ -13,7 +14,7 @@ export type AttributionInsert = Tables["attributions"]["Insert"] & { id: string 
 type Platform = Database["public"]["Enums"]["platform"];
 type Seed = { platform: Platform; handle: string; name: string; followers: number; er: number; bio: string; titles: string[] };
 
-/** Thirty seeded Instagram and TikTok creators. The 40 cached YouTube creators arrive with the M4 adapter. */
+/** Thirty seeded Instagram and TikTok creators. The cached YouTube creators are appended from the snapshot. */
 const SEEDED: Seed[] = [
   // The two story creators (§12): big with a young standalone audience, small with 25–34 hormonal-acne members.
   { platform: "instagram", handle: "tayglowsup", name: "Taylor Nguyen", followers: 430_000, er: 0.021, bio: "GRWM, skincare hauls, dorm life. 19.", titles: ["My 5-step morning routine", "Testing viral pimple patches", "Skincare haul under $40", "Dorm room glow up", "Reacting to your routines"] },
@@ -103,7 +104,27 @@ export function generateCreators(rng: Rng, people: Person[], bundles: KitBundle[
     campaigns.push(c);
   }
 
-  return { creators, campaigns, attributions };
+  // The YouTube snapshot is appended last so the campaign draws above do not move when it changes.
+  return { creators: [...creators, ...YOUTUBE_SNAPSHOT.map((row) => snapshotRow(rng, row))], campaigns, attributions };
+}
+
+function snapshotRow(rng: Rng, row: YoutubeSnapshotRow): CreatorInsert {
+  return {
+    id: rng.uuid(),
+    platform: "youtube",
+    handle: row.handle,
+    display_name: row.display_name,
+    url: row.url,
+    followers: row.followers,
+    engagement_rate: row.engagement_rate,
+    avg_views: row.avg_views,
+    bio: row.bio,
+    recent_titles: row.recent_titles,
+    external_id: row.external_id,
+    source: "youtube_api",
+    data_status: "seeded",
+    enriched_at: null,
+  };
 }
 
 function creatorRow(rng: Rng, s: Seed): CreatorInsert {
