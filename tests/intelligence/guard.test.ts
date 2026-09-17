@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { guardedAggregate, normaliseMinCohort, type ResearchRow } from "@/lib/intelligence/guard";
+import { MAX_SPECIFICITY, TooSpecificError, guardedAggregate, normaliseMinCohort, specificityOf, type AggregateQuery, type ResearchRow } from "@/lib/intelligence/guard";
 
 function row(over: Partial<ResearchRow>): ResearchRow {
   return { consent_research: true, segment: "androgen", region_state: "FL", age_band: "25-34", sex: "female", month: "2026-01", plan: "standalone", channel: "instagram", retested: false, improved: null, deltas: {}, interventionTypes: [], ...over };
@@ -59,6 +59,31 @@ describe("guardedAggregate (§9)", () => {
       expect(Object.keys(c)).not.toContain("rows");
       expect(JSON.stringify(c)).not.toMatch(/email|first_name|customer_id/);
     }
+  });
+
+  it("refuses a query specific enough to single people out, even though every cell would be suppressed", () => {
+    const everything: AggregateQuery = { dimensions: ["segment", "region_state", "age_band", "sex", "month", "plan", "channel"], measure: "count" };
+    expect(specificityOf(everything)).toBe(7);
+    expect(() => guardedAggregate(rows, everything, 10)).toThrow(TooSpecificError);
+    // Suppression alone is not enough: the dimension tuple of a one-person cell identifies that person.
+    expect(() => guardedAggregate(rows, everything, 10_000)).toThrow(TooSpecificError);
+  });
+
+  it("counts filters toward specificity, so a filter stack cannot do what the dimensions were stopped from doing", () => {
+    const query: AggregateQuery = { dimensions: ["month", "channel"], measure: "count", filter: { segment: "androgen", age_band: "25-34", region_state: "FL" } };
+    expect(specificityOf(query)).toBe(5);
+    expect(() => guardedAggregate(rows, query, 10)).toThrow(TooSpecificError);
+    const allowed: AggregateQuery = { dimensions: ["segment", "age_band"], measure: "count", filter: { region_state: "FL" } };
+    expect(specificityOf(allowed)).toBe(MAX_SPECIFICITY);
+    expect(() => guardedAggregate(rows, allowed, 10)).not.toThrow();
+  });
+
+  it("returns cells sorted by dimension value, never in database order", () => {
+    const shuffled = [...rows].reverse();
+    const a = guardedAggregate(rows, { dimensions: ["region_state"], measure: "count" }, 2);
+    const b = guardedAggregate(shuffled, { dimensions: ["region_state"], measure: "count" }, 2);
+    expect(a.cells.map((c) => c.dims.region_state)).toEqual(b.cells.map((c) => c.dims.region_state));
+    expect(a.cells.map((c) => c.dims.region_state)).toEqual(["FL", "GA", "TX"]);
   });
 
   it("normalises the setting: junk falls back, and a cohort of one is never allowed", () => {

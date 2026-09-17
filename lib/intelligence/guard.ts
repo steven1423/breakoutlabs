@@ -40,6 +40,21 @@ export type ResearchRow = {
   interventionTypes: InterventionType[];
 };
 
+/**
+ * How specific a single query may be: grouping dimensions plus active filters.
+ * Suppressing a cell hides its count, not the fact that the cell exists, so a deep enough
+ * grouping is a re-identification attack on its own: seven dimensions over 209 consenting
+ * customers returns 209 suppressed cells, each a unique quasi-identifier tuple for one person.
+ * Every view in this product needs at most three (coverage is two dimensions and one region filter).
+ */
+export const MAX_SPECIFICITY = 3;
+
+export class TooSpecificError extends Error {
+  constructor(specificity: number) {
+    super(`A query may combine at most ${MAX_SPECIFICITY} dimensions and filters; this one asks for ${specificity}. Cells that fine identify individuals even when every one of them is suppressed.`);
+  }
+}
+
 export type AggregateQuery = {
   dimensions: Dimension[];
   measure: Measure;
@@ -53,7 +68,16 @@ export type Cell =
 
 export type AggregateResult = { cells: Cell[]; consented: number; total: number; minCohort: number };
 
+/** Dimensions plus filters. Both narrow the cohort a cell describes, so both count. */
+export function specificityOf(query: AggregateQuery): number {
+  const dimensions = new Set(query.dimensions).size;
+  const filters = Object.values(query.filter ?? {}).filter((v) => v !== undefined).length;
+  return dimensions + filters;
+}
+
 export function guardedAggregate(rows: readonly ResearchRow[], query: AggregateQuery, minCohort: number): AggregateResult {
+  const specificity = specificityOf(query);
+  if (specificity > MAX_SPECIFICITY) throw new TooSpecificError(specificity);
   const consented = rows.filter((r) => r.consent_research);
   const eligible = consented.filter((r) => matches(r, query));
   const groups = new Map<string, { dims: Record<string, string>; rows: ResearchRow[] }>();
@@ -65,11 +89,15 @@ export function guardedAggregate(rows: readonly ResearchRow[], query: AggregateQ
     groups.set(key, group);
   }
   const parentTotals = parentCounts(groups, query.dimensions);
-  const cells: Cell[] = [...groups.values()].map((g) => {
-    const contributing = contributors(g.rows, query);
-    if (contributing.length < minCohort) return { dims: g.dims, suppressed: true, count: null, value: null };
-    return { dims: g.dims, suppressed: false, count: contributing.length, ...measure(contributing, g.dims, query, parentTotals) };
-  });
+  // Sorted by dimension value, never by the order rows came out of the database:
+  // database order is itself a join key back to the customers table.
+  const cells: Cell[] = [...groups.values()]
+    .sort((a, b) => query.dimensions.map((d) => a.dims[d]).join("|").localeCompare(query.dimensions.map((d) => b.dims[d]).join("|")))
+    .map((g) => {
+      const contributing = contributors(g.rows, query);
+      if (contributing.length < minCohort) return { dims: g.dims, suppressed: true, count: null, value: null };
+      return { dims: g.dims, suppressed: false, count: contributing.length, ...measure(contributing, g.dims, query, parentTotals) };
+    });
   return { cells, consented: consented.length, total: rows.length, minCohort };
 }
 

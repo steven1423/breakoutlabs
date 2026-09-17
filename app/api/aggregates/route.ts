@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cellsToCsv } from "@/lib/intelligence/csv";
-import { INTERVENTION_TYPES, MARKERS, SEGMENTS, isDimension, isMeasure, type AggregateQuery, type Dimension, type InterventionType, type Marker, type Segment } from "@/lib/intelligence/guard";
+import { INTERVENTION_TYPES, MARKERS, MAX_SPECIFICITY, SEGMENTS, TooSpecificError, isDimension, isMeasure, specificityOf, type AggregateQuery, type Dimension, type InterventionType, type Marker, type Segment } from "@/lib/intelligence/guard";
 import { openIntelligence } from "@/lib/intelligence";
 
 /**
@@ -21,6 +21,7 @@ export async function GET(request: Request) {
     }
     return NextResponse.json({ query: parsed.query, minCohort: result.minCohort, consented: result.consented, cells: result.cells });
   } catch (err) {
+    if (err instanceof TooSpecificError) return NextResponse.json({ error: err.message }, { status: 400 });
     return NextResponse.json({ error: err instanceof Error ? err.message : "Aggregate failed" }, { status: 500 });
   }
 }
@@ -48,5 +49,8 @@ export function parseQuery(params: URLSearchParams): { query: AggregateQuery } |
   if (ageBand) filter.age_band = ageBand;
   const region = params.get("region_state");
   if (region) filter.region_state = region.toUpperCase().slice(0, 2);
-  return { query: { dimensions: dims as Dimension[], measure, marker: (marker as Marker) ?? undefined, filter: Object.keys(filter).length ? filter : undefined } };
+  const query: AggregateQuery = { dimensions: [...new Set(dims)] as Dimension[], measure, marker: (marker as Marker) ?? undefined, filter: Object.keys(filter).length ? filter : undefined };
+  const specificity = specificityOf(query);
+  if (specificity > MAX_SPECIFICITY) return { error: new TooSpecificError(specificity).message };
+  return { query };
 }
