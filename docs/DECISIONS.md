@@ -419,3 +419,6 @@ Everything in this section was found by a preflight of the merged build and a ni
 - The architecture diagram used Mermaid's `[/label]` parallelogram syntax without closing it, so the one diagram in the docs rendered as a syntax error on GitHub. It also omitted `lib/attribution`, which computes the headline growth metric.
 - There was no favicon, so every page logged a 404 in the console.
 
+### The eval harness grades the call the answer was built from
+- What: `answer_count_matches_rows` compares the answer's table against the last call of that tool that did not error, and fails outright if every call errored.
+- Why: a run hit a transient Supabase error ("JWT issued at future") on the first `list_customers` call. The copilot did the right thing, retried, and answered from the 17 rows the retry returned; the harness compared the answer against the errored call and failed a correct answer. Grading the retry is stricter, not looser: an answer with a table and no successful call is now an explicit failure instead of an accident of null arithmetic.
