@@ -5,7 +5,7 @@ import { ModelTimeline } from "@/components/model-timeline";
 import { PageHeader } from "@/components/page-header";
 import { parsePersona } from "@/lib/personas";
 
-export const metadata: Metadata = { title: "Model" };
+export const metadata: Metadata = { title: "Valuation calculator" };
 
 const CAPTION = "Price for the retest. Drag the retest rate and watch what the company is worth.";
 
@@ -15,7 +15,7 @@ export default async function ModelPage({ searchParams }: Props) {
   const persona = parsePersona((await searchParams).as);
   return (
     <>
-      <PageHeader title="Model" caption={CAPTION} status="seeded" reason="A model, not a forecast. Formulas in lib/model; inputs live in the URL." />
+      <PageHeader title="Valuation calculator" caption={CAPTION} status="seeded" reason="A model, not a forecast. Formulas in lib/model; inputs live in the URL." />
       <Suspense fallback={<p className="mt-8 text-15 text-muted">Loading the calculator.</p>}>
         <ModelCalculator />
       </Suspense>

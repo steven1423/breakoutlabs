@@ -8,31 +8,39 @@ export type Persona = (typeof PERSONAS)[number];
 export const DEFAULT_PERSONA: Persona = "support";
 export const PERSONA_PARAM = "as";
 
-export type SectionKey = "ops" | "growth" | "intelligence" | "brand";
+export type SectionKey = "ops" | "growth" | "intelligence";
 
-export type NavLink = { href: string; label: string };
-export type Section = { key: SectionKey; label: string; links: NavLink[] };
+/** A page in the rail. `persona` overrides the group's when the page belongs to someone else. */
+export type NavLink = { href: string; label: string; persona?: Persona };
+/** One group of the rail. `persona` is who the group belongs to; opening one of its links views the app as them. */
+export type Section = { key: SectionKey; persona: Persona; label: string; links: NavLink[] };
 
-/** The four sections of the left rail, in default order. */
+/**
+ * The rail, in the one order it is ever shown. Three groups named after the people who use them,
+ * six pages named after what they show. The partner brand portal sits under Growth because that is
+ * where the money comes from; its link still views the app as the brand persona.
+ */
 export const SECTIONS: readonly Section[] = [
-  { key: "ops", label: "Ops", links: [{ href: "/ops", label: "Kits and tickets" }] },
+  { key: "ops", persona: "support", label: "Support", links: [{ href: "/ops", label: "Kits and tickets" }] },
   {
     key: "growth",
+    persona: "growth",
     label: "Growth",
     links: [
       { href: "/growth", label: "Creators" },
-      { href: "/growth/allocator", label: "Allocator" },
+      { href: "/growth/allocator", label: "Ad budget split" },
+      { href: "/brand", label: "Partner brand portal", persona: "brand" },
     ],
   },
   {
     key: "intelligence",
-    label: "Intelligence",
+    persona: "founder",
+    label: "Founder",
     links: [
-      { href: "/intelligence", label: "Aggregates" },
-      { href: "/model", label: "Model" },
+      { href: "/intelligence", label: "Customer insights" },
+      { href: "/model", label: "Valuation calculator" },
     ],
   },
-  { key: "brand", label: "Partner brand", links: [{ href: "/brand", label: "Brand portal" }] },
 ];
 
 export type PersonaMeta = { label: string; home: string; section: SectionKey };
@@ -41,7 +49,7 @@ export const PERSONA_META: Record<Persona, PersonaMeta> = {
   support: { label: "Support", home: "/ops", section: "ops" },
   growth: { label: "Growth", home: "/growth", section: "growth" },
   founder: { label: "Founder", home: "/intelligence", section: "intelligence" },
-  brand: { label: "Partner brand", home: "/brand", section: "brand" },
+  brand: { label: "Partner brand", home: "/brand", section: "growth" },
 };
 
 export function isPersona(value: unknown): value is Persona {
@@ -52,14 +60,6 @@ export function isPersona(value: unknown): value is Persona {
 export function parsePersona(value: string | string[] | null | undefined): Persona {
   const single = Array.isArray(value) ? value[0] : value;
   return isPersona(single) ? single : DEFAULT_PERSONA;
-}
-
-/** The rail for a persona: their own section first, the rest in default order. */
-export function navFor(persona: Persona): Section[] {
-  const own = PERSONA_META[persona].section;
-  const first = SECTIONS.filter((s) => s.key === own);
-  const rest = SECTIONS.filter((s) => s.key !== own);
-  return [...first, ...rest];
 }
 
 /** Adds `?as=persona` to an internal link so the persona survives navigation. */

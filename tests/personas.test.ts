@@ -4,7 +4,6 @@ import {
   PERSONAS,
   PERSONA_META,
   SECTIONS,
-  navFor,
   parsePersona,
   withPersona,
 } from "@/lib/personas";
@@ -27,18 +26,18 @@ describe("parsePersona", () => {
   });
 });
 
-describe("navFor", () => {
-  it("puts the persona's own section first and keeps every section", () => {
-    for (const p of PERSONAS) {
-      const nav = navFor(p);
-      expect(nav[0].key).toBe(PERSONA_META[p].section);
-      expect(nav.map((s) => s.key).sort()).toEqual(SECTIONS.map((s) => s.key).sort());
-    }
+describe("SECTIONS", () => {
+  it("is one fixed list in which every persona owns at least one page", () => {
+    const owners = SECTIONS.flatMap((s) => s.links.map((l) => l.persona ?? s.persona));
+    for (const p of PERSONAS) expect(owners).toContain(p);
+    expect(SECTIONS.map((s) => s.label)).toEqual(["Support", "Growth", "Founder"]);
   });
 
-  it("points every persona home at a link in the rail", () => {
-    const hrefs = SECTIONS.flatMap((s) => s.links.map((l) => l.href));
-    for (const p of PERSONAS) expect(hrefs).toContain(PERSONA_META[p].home);
+  it("points every persona home at a page that views the app as them", () => {
+    for (const p of PERSONAS) {
+      const link = SECTIONS.flatMap((s) => s.links.map((l) => ({ ...l, owner: l.persona ?? s.persona }))).find((l) => l.href === PERSONA_META[p].home);
+      expect(link?.owner).toBe(p);
+    }
   });
 });
 
