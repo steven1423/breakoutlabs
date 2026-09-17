@@ -9,7 +9,7 @@ The internal operating system that closes the 90-day retest loop at BreakoutLabs
 
 ## Setup
 
-Requires Node 20 or newer and pnpm 10.
+Requires Node 22.18 or newer (the scripts use Node's built-in TypeScript support) and pnpm 10.
 
 1. `pnpm install`
 2. Copy `.env.example` to `.env.local` and fill in the values. The example lists names only.
@@ -28,8 +28,9 @@ Requires Node 20 or newer and pnpm 10.
 | `pnpm migrate` | Applies unapplied SQL migrations over HTTPS (needs the access token and project ref) |
 | `pnpm gen:types` | Regenerates `lib/db/types.ts` from the live schema |
 | `pnpm seed` | Wipes and reloads the synthetic dataset; prints counts and a checksum |
+| `pnpm sweep` | Runs the stuck-kit sweep once; safe to repeat |
 
-`pnpm eval`, `pnpm discover` and `pnpm sweep` are added by the milestones that build them.
+`pnpm eval` and `pnpm discover` are added by the milestones that build them.
 
 ## Database
 
