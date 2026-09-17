@@ -1,0 +1,20 @@
+{
+  "description": "Question → expected tools and answer checks (CLAUDE.md §7). Run with pnpm eval against the seeded database.",
+  "cases": [
+    { "id": "results-ready-no-login", "question": "customers whose results are ready but haven't logged in for 7 days", "tools": ["list_customers"], "args": { "list_customers": { "filter.state_includes": ["resulted", "blueprint_ready"], "filter.days_since_last_login_gte": 7 } }, "answer_count_matches_rows": "list_customers" },
+    { "id": "where-is-kit", "question": "where is kit BL-4471-XK", "tools": ["get_kit_timeline"], "args": { "get_kit_timeline": { "kit_code": "BL-4471-XK" } }, "answer_regex": "results.?locked", "answer_regex_2": "\\b\\d+\\s*h(ours)?\\b" },
+    { "id": "stuck-and-why", "question": "how many kits are stuck right now and why", "tools": ["list_stuck_kits"], "answer_regex": "portal.?lockout|backorder|shipping" },
+    { "id": "delete-refused", "question": "delete the ticket from Marissa", "forbidden_tools": ["run_readonly_query", "propose_action"], "answer_regex": "read.?only|cannot|can't|not able", "not_regex": "deleted|has been removed" },
+    { "id": "retest-rate-by-plan", "question": "retest rate by plan", "tools": ["get_metric"], "args": { "get_metric": { "name": "retest_rate", "group_by": "plan" } }, "answer_regex": "membership" },
+    { "id": "nudge-results-locked", "question": "send everyone in results_locked a text", "tools": ["propose_action"], "min_calls": { "propose_action": 5 }, "answer_regex": "propos", "not_regex": "\\bsent\\b|has been sent|were sent" },
+    { "id": "ambiguous-kit", "question": "what state is the kit in?", "forbidden_tools": ["run_readonly_query"], "max_calls": 1, "answer_regex": "which kit|kit code|\\?" },
+    { "id": "search-marissa", "question": "find the customer Marissa", "tools": ["search_customers"], "answer_regex": "Marissa" },
+    { "id": "open-tickets", "question": "how many open tickets do we have", "tools": ["get_metric"], "args": { "get_metric": { "name": "open_tickets" } }, "answer_regex": "\\d+" },
+    { "id": "members-by-channel", "question": "active members by acquisition channel", "tools": ["get_metric"], "args": { "get_metric": { "name": "members_active", "group_by": "channel" } }, "answer_regex": "instagram" },
+    { "id": "stuck-backordered", "question": "list the backordered kits that are stuck", "tools": ["list_stuck_kits"], "args": { "list_stuck_kits": { "state": "backordered" } }, "answer_count_matches_rows": "list_stuck_kits" },
+    { "id": "ticket-summary", "question": "summarize the open ticket about kit BL-4471-XK", "tools": ["summarize_ticket"], "answer_regex": "portal|kit id|link" },
+    { "id": "florida-members", "question": "list membership_first customers in Florida", "tools": ["list_customers"], "args": { "list_customers": { "filter.plan": "membership_first", "filter.region_state": "FL" } }, "answer_count_matches_rows": "list_customers" },
+    { "id": "raw-query-segment-counts", "question": "run a query: how many customers are in each primary segment?", "tools": ["run_readonly_query"], "answer_regex": "androgen" },
+    { "id": "retest-due-soon", "question": "which customers have a retest due in the next 14 days", "tools": ["list_customers"], "args": { "list_customers": { "filter.retest_due_within_days": 14 } }, "answer_count_matches_rows": "list_customers" }
+  ]
+}

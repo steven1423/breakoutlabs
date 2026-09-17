@@ -63,3 +63,247 @@ Every non-obvious choice gets an entry: what, why, the alternative considered. N
 - What: `.env.example` sets `CLAUDE_MODEL=claude-sonnet-5`; `CLAUDE_EFFORT` is reserved for the copilot's effort level and is proposed in the M3 plan.
 - Why: CLAUDE.md §3 and §15 name that default. Nothing in M0 calls the model.
 - Alternative: none.
+
+## M1 — Schema and synthetic data
+
+### Migrations run over HTTPS through the Management API
+- What: `pnpm migrate` posts each `supabase/migrations/*.sql` file to the Management API SQL endpoint and records it in `schema_migrations`. `pnpm gen:types` uses the same access token.
+- Why: the project's direct Postgres host is IPv6-only and this sandbox has no IPv6, so `supabase db push` cannot connect. The SQL endpoint runs as the `postgres` role, which is enough for DDL.
+- Alternative: the IPv4 Supavisor pooler. Rejected for migrations because it needs a password in the environment and a Postgres client; M3 may still need it for the copilot role.
+
+### Forward-only migrations, even for a fix
+- What: the grant that lets `postgres` impersonate `staff` is its own file (`0004`) rather than an edit to `0002`.
+- Why: applied files are never edited, so any environment can be brought to the same state by running the list in order.
+- Alternative: reset the database and re-run. Rejected because it is a destructive step for a one-line change.
+
+### `staff` is a real role with policies; the server uses the secret key for now
+- What: RLS is on for every table. Only `staff` has policies (read everything, write kits, kit_events, tickets, pending_actions, settings). `anon` and `authenticated` have no policies and see zero rows. The Next server reads through the secret key (`service_role`), which bypasses RLS.
+- Why: personas are a switcher, not accounts (cut list), so there is no user JWT to carry a role. The policies still exist and are exercised through `set role staff` in verification, so wiring a real staff JWT later is a change to the client, not the schema.
+- Alternative: mint a `staff` JWT on the server. Rejected for M1 as extra machinery with no user model behind it.
+
+### Determinism: fixed "today", every id and timestamp from the generator
+- What: the generator anchors "today" to a constant (`TODAY_MS`, 2026-09-16) and supplies every uuid and timestamp itself. The seed script never lets the database default a column.
+- Why: the definition of done is identical counts and checksums across two runs. A `now()` default or a real clock would break that silently.
+- Alternative: derive "today" from the run date. Rejected; bump the constant before the demo instead.
+
+### Exact quotas for plan, age, sex and channel
+- What: those four fields are assigned from shuffled quota lists so their shares match §12 exactly; segment, region, consent and retest are drawn per person.
+- Why: at n=500 a plain weighted draw can miss a share by two standard deviations, and the tests would fail for a good seed.
+- Alternative: widen test tolerances. Rejected because exact shares are easier to explain.
+
+### Driver markers are always out of range at baseline
+- What: a segment's driver markers are redrawn (at most four times, then clamped just past the range) until they flag on the driven side.
+- Why: §12 says "androgen → high testosterone/DHEA-S, low SHBG". A normal draw around the driven center still lands in range about one time in six, which would make the segment rule false for some customers.
+- Alternative: keep the noise. Rejected.
+
+### Non-retesting customers accumulate in `retest_due`
+- What: about 60% of baseline kits sit in `retest_due` because their customers never ordered a retest. The state machine has no "lapsed" state.
+- Why: that is the retest leak the product is about. M2 will report those separately from ops exceptions so the stuck queue is not swamped.
+- Alternative: invent a `lapsed` state. Rejected; §5's enum is the spec.
+
+### `reset_synthetic_data()` is a security-definer function
+- What: the seed calls one RPC that truncates the synthetic tables; only `service_role` may execute it.
+- Why: PostgREST has no truncate, and a filtered delete over fourteen tables is slower and easier to get wrong.
+- Alternative: run the truncate through the Management API. Rejected so `pnpm seed` needs only the secret key.
+
+### The 40 cached YouTube creators wait for M4
+- What: M1 seeds the 30 Instagram and TikTok creators and all 15 campaigns; the YouTube snapshot lands with the adapter that produces it.
+- Why: the snapshot is the output of a live pull, and there is no adapter yet.
+
+### `"type": "module"` in package.json
+- What: the package is ESM.
+- Why: the seed and migrate scripts run on Node's built-in TypeScript support, which needs the module type to be explicit or warns on every run. Next 16, Vitest and ESLint all accept ESM packages.
+
+## M2 — State machine and stuck sweep
+
+### The transition table is data, and the database layer is one file
+- What: `lib/state-machine/transitions.ts` holds a map of legal next states and a pure `transition()` that returns the new kit plus the event to record. `lib/state-machine/db.ts` is the only code that writes `kits` and `kit_events`.
+- Why: CLAUDE.md §6 asks for a pure machine with no database calls. Keeping writes in one file means every state change in the product produces an event, which the timeline depends on.
+- Alternative: transitions inside a database trigger. Rejected because the rules would live where tests cannot reach them.
+
+### Cancel and refund from any non-terminal state
+- What: `cancelled` and `refunded` are legal exits from every non-terminal state.
+- Why: §6 names them terminal but gives no entry rule, and support needs both from anywhere.
+- Alternative: refund only after `sample_received`. Rejected as a business rule we do not know.
+
+### Retention states get nudges, not tickets
+- What: kits stuck in `viewed` or `retest_due` count as stuck and get a nudge proposal, but the sweep never opens a support ticket for them.
+- Why: about 300 baseline kits sit past the `retest_due` SLA. One ticket each would bury the 40 ops exceptions nobody else is watching. A lapsed customer is a growth problem, and the nudge is the growth action.
+- Alternative: a ticket per lapsed customer. Rejected because nobody would work that queue.
+
+### The sweep is a planner plus a writer
+- What: `planSweep()` is pure and returns what to write; `sweepStuckKits()` loads, plans, writes. Idempotency comes from the planner reading open tickets and proposed nudges.
+- Why: the idempotency test then runs in memory with a fake store, and a second sweep against the real database is shown to write nothing in the PR.
+- Alternative: unique constraints in the database. Rejected for M2 because "one open ticket per kit" is a rule about status, which a unique index cannot express cleanly.
+
+### An open customer ticket is classified, not duplicated
+- What: when a stuck kit already has an open ticket with no `likely_cause`, the sweep sets the cause on it instead of opening a second one.
+- Why: the customer usually complains before the SLA passes. The ticket they opened is the one support should work, now labelled.
+
+### SLA hours come from settings, merged over the §6 defaults
+- What: `mergeSlaHours()` overlays `settings.sla_hours` on the code defaults, ignoring unknown states and bad values.
+- Why: §6 says overridable; the defaults keep the machine working when the row is missing or malformed.
+
+### The cron route refuses without a secret
+- What: `POST /api/sweep` needs `Authorization: Bearer CRON_SECRET`, and returns 503 if the secret is not configured.
+- Why: the route writes tickets. An unconfigured deploy should not be sweepable by anyone who finds the URL. The staff button on `/ops` is a server action and does not use the route.
+
+### Node 22.18 or newer
+- What: `engines.node` is now `>=22.18`.
+- Why: the seed, migrate and sweep scripts run TypeScript through Node's built-in type stripping, which shipped unflagged in 22.18. CLAUDE.md says Node 20+; that predates the scripts.
+
+## M3 — Copilot
+
+### The model's SQL runs as `copilot` through two security-invoker functions, not a second connection string
+- What: `copilot_run_readonly_query` and `copilot_explain_query` are public functions executable only by `service_role`, which is granted membership in `copilot` and switches to it with `set local role` inside the function. Only masked views in schema `copilot` are readable; public tables are denied.
+- Why: the direct Postgres host is IPv6-only and unreachable from the sandbox, so `SUPABASE_COPILOT_DB_URL` could not be exercised. The function gives the same privilege boundary over HTTPS and was probed: views readable, base tables denied, 200-row cap, anon cannot execute.
+- Alternative: security definer functions. Rejected because Postgres forbids `SET ROLE` inside them (migration 0005 tried it, 0006 corrected it).
+
+### The 5-second timeout is enforced by the client, not the function
+- What: `set_config('statement_timeout')` inside a running statement does not re-arm the timer, so the RPC call carries an `AbortSignal.timeout(5000)`, the guard rejects `pg_sleep`, and `alter role copilot set statement_timeout` covers any direct connection.
+- Why: measured: a `pg_sleep(10)` through the function completed. The client abort is the guarantee the app can actually give.
+
+### Guard first, then EXPLAIN, then run
+- What: `guardSql` is a pure whitelist (one `select` or `with`, no semicolons, comments, locks, `into`, writes, settings, sleep or file functions). A passing query is planned with `explain` as the copilot role before it runs.
+- Why: the guard stops obvious misuse in-process; the explain catches bad SQL and privilege errors without executing; the role is the real boundary.
+
+### Typed tools use the service client; only raw SQL uses the copilot role
+- What: nine tools run fixed queries we wrote, selecting masked columns and truncating ticket bodies to 500 characters. `run_readonly_query` is the only path where model-written SQL reaches Postgres, and it runs as `copilot`.
+- Why: CLAUDE.md §7 says the model never gets raw SQL except through that one tool. Fixed queries need the joins and settings the views do not expose.
+
+### Manual streaming loop, not the SDK tool runner
+- What: `runCopilot` streams each turn through a `ModelProvider`, executes the tool calls it returns, appends the results, stops at end_turn or after 8 calls, then makes one last turn with tools disabled so the model still answers.
+- Why: the transparency panel needs per-call timing and row counts, the cap needs a graceful last turn, and the route needs a custom SSE transport. The tool runner is beta and hides those seams.
+
+### Last login is derived, not stored
+- What: "days since last login" is the latest customer-actor kit event or check-in.
+- Why: §5 has no login table, and adding a column would change the schema for one question.
+
+### Effort defaults to medium
+- What: `output_config.effort` comes from `CLAUDE_EFFORT`, validated against low, medium, high, xhigh, max; anything else falls back to medium. Sonnet 5 runs adaptive thinking, so no thinking parameter is sent.
+- Why: the copilot answers factual questions through tools where latency matters more than depth. Raise it per deployment if answers feel thin.
+
+### Ticket summaries are JSON in text, validated by zod, retried once
+- What: the summariser asks for one JSON object, parses the first `{...}`, validates against `aiSummarySchema`, and re-asks once with the validation error before giving up.
+- Why: one plain request is easier to explain than structured-output configuration, and the schema check is what makes the cache trustworthy.
+
+### Confirm is the whole action
+- What: Confirm and Reject set `pending_actions.status` and `decided_at`. No send exists.
+- Why: Klaviyo, SendGrid and Twilio are on the cut list; the table is the audit trail a later integration would consume.
+
+### Gemini is the demo provider; Anthropic stays the default
+- What: `MODEL_PROVIDER=gemini` routes the copilot and the ticket summariser through Gemini (`GEMINI_API_KEY`, `GEMINI_MODEL`, default `gemini-2.5-flash`). Unset or `anthropic` keeps the CLAUDE.md path (`ANTHROPIC_API_KEY`, `CLAUDE_MODEL`). The badge reason names the vendor and model that answered.
+- Why: the Anthropic account had no credits when the M3 evals were due, and the demo is a video, not a code review. Gemini's free tier ran all 15 evals. Steven chose this; it is an environment switch, not a code fork.
+- Alternative: wait for Anthropic credits. Rejected because the M3 definition of done needs the evals to pass now and nothing in the product depends on which vendor answers.
+
+### One `ModelProvider` interface, two adapters
+- What: `lib/copilot/provider.ts` defines a neutral turn (`streamTurn`) and a one-shot `complete`. `providers/anthropic.ts` and `providers/gemini.ts` translate the neutral history to each vendor's shape and back; the loop, tools, guard and evals never see vendor types. Each adapter keeps the raw assistant parts so a replayed turn is byte-identical (Anthropic content blocks, Gemini parts with thought signatures).
+- Why: the loop is the part a CTO reads; it should not change when the vendor does. Retries on 429/503/529 live in the loop once.
+- Alternative: a `switch` inside the loop. Rejected because every vendor difference (tool_choice vs omitting tools, tool_result vs functionResponse) would leak into the part that is supposed to be simple.
+
+### `@google/genai` is the one dependency beyond §3
+- What: the official Google SDK, pinned exactly. It is only imported by the Gemini adapter and `createProvider()`.
+- Why: the demo override needs it; hand-rolling the streaming and function-calling wire format would be more code to explain than the SDK.
+
+### Effort maps to a Gemini thinking budget
+- What: `CLAUDE_EFFORT` low, medium, high, xhigh, max become `thinkingBudget` 0, 1024, 4096, -1, -1 (dynamic) on Gemini. Anthropic keeps `output_config.effort`.
+- Why: one env var controls depth on both vendors, so the docs and the demo setup do not fork.
+
+### Gemini runs at temperature 0
+- What: both Gemini calls set `temperature: 0`. Anthropic is left at its default.
+- Why: at the default temperature Gemini picked a different tool for the same question on repeated runs (get_metric instead of run_readonly_query for "run a query"). The copilot is a data tool; reproducible tool choice matters more than varied prose. Evals passed 15/15 on two consecutive runs after the change.
+
+### An empty model turn is retried, not shown
+- What: when Gemini returns neither text nor a function call (its `MALFORMED_FUNCTION_CALL` finish, or a dropped part), the adapter throws a retryable `EmptyTurnError` and the loop re-samples the turn on the same 2 s, 4 s, 8 s schedule as rate limits.
+- Why: it happened once in the eval runs and produced a blank answer. Re-sampling is the documented remedy and costs one call.
+
+### The model is told the view schema and its call budget
+- What: the `run_readonly_query` description lists every masked view and its columns; the system prompt says explicitly that "run a query" or "SQL" means that tool, that "send", "text" or "nudge" means look up the recipients and call `propose_action` once per customer, and that there are at most 8 tool calls per question. `get_kit_timeline` now returns the kit's tickets so a kit code leads to a ticket id in one typed call.
+- Why: eval failures traced to missing facts, not model quality: six SQL attempts guessing column names, a refusal to nudge because the old rule said "decline any send", and a search for a ticket id that no typed tool exposed. Giving the model the facts fixed each case; loosening the evals would have hidden them.
+
+## M4 — Growth
+
+### Last 12 uploads come from the uploads playlist, not a second search
+- What: enrichment reads `playlistItems.list` on the channel's uploads playlist (1 unit) and then one `videos.list` batch (1 unit), instead of the `search.list channelId=… order=date` call §8.2 names (100 units, and one of the 60 daily searches).
+- Why: a 40-channel run would otherwise cost 54 of the 60 daily search calls and about 5,400 units, leaving no room for a retry. A full run now costs 14 searches and about 1,500 units. Agreed with Steven in the M4 plan.
+
+### Every API response is cached for a day in `api_cache`
+- What: adapters look up `api_cache` by request key before calling out; a hit is served without spending quota. Rows enriched from a cached response still carry `enriched_at` from the cache's fetch time.
+- Why: quota is the scarce thing, re-runs must be cheap, and the cache is what makes the snapshot reproducible. A day is short enough that the demo shows current numbers.
+- Alternative: no cache and a smaller run. Rejected: a second Discover click on demo day would fail on quota.
+
+### Each query is capped so all seven contribute
+- What: discovery asks for `ceil(limit / queries)` results per query and type, takes the first 40 unique channels, then enriches.
+- Why: the first run let "hormonal acne journey" fill all 40 slots and never ran the other six queries. Breadth across PCOS, spironolactone and accutane content is the point of the query list.
+
+### The snapshot is the handles from one run, written as a TypeScript module
+- What: `pnpm discover` writes `lib/synthetic/youtube-snapshot.ts` with exactly the channels that run found; the seed appends them as `data_status='seeded'`, `source='youtube_api'` rows after the campaign draws so the story campaigns do not move.
+- Why: §12 wants 40 cached YouTube creators that reproduce under `pnpm seed`, and honest labels: a snapshot is not Live until the running build re-fetches it. A `.ts` module avoids JSON import attributes, which differ between Node, Vite and Turbopack.
+
+### Cross-links are rows, not a relation
+- What: handles found in channel and video descriptions become Seeded `creators` rows (`source='youtube_api'`) with `ignoreDuplicates`, so an existing seeded creator is never overwritten. The creator page re-extracts handles from the stored bio to show its cross-links.
+- Why: §5 has no link table and adding one would change the schema for a display detail. Re-extracting from the bio is pure and costs nothing.
+
+### Instagram and search adapters are built, tested on fixtures, and hidden when unconfigured
+- What: `InstagramSource` (Business Discovery, engagement over the last 12 posts, errors stored in `creators.enrich_error`) and `SearchSource` (Serper, handles from result URLs only) exist behind `META_*` and `SEARCH_API_KEY`. The UI shows "Not configured" with the Seeded badge instead of hiding the button.
+- Why: §16 says never fake an integration. The keys are absent in this environment, so neither adapter has been exercised against the live API; the parsers are unit-tested on the documented response shapes.
+
+### The price band is computed in code, not by the model
+- What: `priceBand()` applies the §8.6 tiers and the ±30% engagement adjustment. The card prompt receives the estimate and must echo it; after validation the computed values overwrite whatever the model returned.
+- Why: a number a founder will quote in a negotiation should come from a rule he can read, not from a sample. The card's judgement (fit, segment, angle, draft) is the model's; the arithmetic is ours.
+
+### One `completeJson` helper for the summariser and the card
+- What: `lib/copilot/json.ts` asks the provider once, validates with zod, and retries once with the validation error. The M3 summariser now calls it.
+- Why: two copies of the same retry loop would drift. This is the one refactor in M4 and it is its own commit.
+
+### Attribution metrics are pure and nulls mean "no denominator"
+- What: `campaignMetrics()` returns `null` for CAC, cost per registered, cost per retest and retest rate when the denominator is zero; the UI renders a dash. LTV counts at most three membership months per attributed customer.
+- Why: a new campaign with no retests should sort last on cost-per-retest, not show Infinity. Three months is the 90-day window §8.7 defines.
+
+### Posterior Beta(1 + retested, 1 + orders − retested), seeded by ISO week
+- What: the uniform prior updated by each campaign's attributed orders and retests. The weekly run's random source is `seedrandom("allocator-<ISO week>")`, so pressing Run twice in one week reproduces the draw; a new week draws afresh.
+- Why: §8.8 allows an informed prior; the attribution rows are the best information we have. Seeding by week makes the demo repeatable and the tests exact.
+
+### Floor and cap by water-filling, cents by largest remainder
+- What: shares ∝ sampled θ are clamped to [5%, 40%], and the shortfall is handed to campaigns with headroom in proportion to it until nothing moves. Whole cents sum to the budget; leftover cents go one each to the largest remainders.
+- Why: the first implementation could leave money unspent when every campaign was pinned at a bound (test case: two at the cap, one at the floor). Water-filling always spends the budget when 5%·n ≤ 100% ≤ 40%·n.
+
+### Density curves are inline SVG, not recharts
+- What: `BetaCurve` draws the Beta density with one SVG path and marks the sampled draw; it renders on the server.
+- Why: the plan listed recharts, but a 40-point sparkline without axes does not need a chart library or a client bundle. Recharts stays reserved for the M5 model and M6 intelligence charts, where axes and tooltips matter.
+
+### The leaderboard reorder is a FLIP transition on the rows
+- What: the client component records each row's top before the re-render, then animates from the old offset to zero with the Web Animations API. `prefers-reduced-motion` skips the animation.
+- Why: §14 allows motion only in response to actions and no animation library. FLIP is twenty lines and the rows stay real table rows.
+
+### Email addresses are redacted at ingestion
+- What: `redactEmails()` runs on every bio, description and title an adapter returns before the row is built, so `creators` never holds an address, and the seed's privacy test (no email anywhere in the dataset) covers the YouTube snapshot too.
+- Why: channel descriptions carry business emails. They are public, but §16 says never store a real email, and the rule is simpler with no exceptions. The first snapshot failed the privacy test; this is the fix.
+
+### One-shot Gemini calls get the same 8,000-token limit as streamed turns
+- What: `complete()` on the Gemini provider had `maxOutputTokens: 1000`; it is now 8,000, matching `streamTurn()`.
+- Why: Gemini counts thinking tokens against the output limit. The creator card for a long channel description spent 788 tokens thinking and was cut off at 196 tokens of JSON (finish reason MAX_TOKENS, measured). The M3 ticket summaries were shorter and passed by luck.
+
+## M5 — Model
+
+### The formulas are §11 as written, plus three one-line additions
+- What: `lib/model/formulas.ts` implements every §11 line literally, including brand revenue as `(retested_cum / 12) × partner_gmv_per_year / 12 × take_rate`. Three additions, each one line and each named in the page's footnote: retests count three months after the order (a retest is a 90-day event); "ramps from month 18" is a linear ramp to 100% at month 24; and churn applies only to members who have not retested (`effective churn = churn × (1 − retest rate)`, after month 3).
+- Why: without the churn coupling the retest slider barely reaches the valuation, because §11 routes retests only into brand revenue, which is small at the defaults (about $17K of ARR at month 36 against $14M). The definition of done needs the slider to move the number, and "retested members stay" is the thesis of the product. Steven gave latitude to make up what §11 leaves open; all three are documented and reversible.
+- Alternative: reading the first `/12` in the brand formula as a typo (12× more brand revenue). Rejected because CLAUDE.md wins on a written formula and even the larger reading does not make the retest slider matter on its own.
+
+### Inputs live in the URL
+- What: `lib/model/url.ts` writes only non-default inputs to the query string and clamps what it reads to the slider bounds. The timeline's Year 2 link is `/model?plan=membership_first`.
+- Why: a linkable state is what makes the timeline honest ("this milestone is that setting") and lets Steven send a specific scenario. Junk in the URL falls back to defaults rather than breaking the page.
+
+### Outputs count to their new value; the chart does not animate
+- What: `CountUp` eases the six output tiles over half a second and is skipped under `prefers-reduced-motion`. The recharts areas have animation off.
+- Why: §14 allows motion only in response to actions and names "the model outputs counting to their new value". Animating the areas as well would compete with the tiles.
+
+### Chart colours are re-stepped tokens, validated
+- What: three CSS variables (`--chart-membership`, `--chart-kits`, `--chart-brand`) in the amber, teal and garnet hue family, one set per colour scheme. The stack order puts teal between amber and garnet. Both sets pass the dataviz palette validator (lightness band, chroma floor, CVD and normal-vision separation, contrast); the dark set carries a contrast warning on garnet, answered by the legend and the month-by-month table under the chart.
+- Why: the §14 tokens as-is fail the validator as a categorical set (teal reads grey, amber is too light on the dark surface, amber and garnet are too close as neighbours). The chart keeps the family and fixes the steps; the product tokens are untouched.
+
+### recharts, added here
+- What: one stacked area chart of ARR by source. `recharts` is the §3 chart library and this is its first use.
+- Why: this chart needs axes, a legend and a hover tooltip; the M4 sparklines did not. One library for all charts from here on.
+

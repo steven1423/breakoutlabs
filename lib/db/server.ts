@@ -24,3 +24,5 @@ export async function createServerSupabase() {
     },
   });
 }
+
+export { createServiceSupabase } from "./service";
