@@ -13,14 +13,30 @@ export type WindowDays = (typeof WINDOWS)[number];
 
 export type BrandInputs = { segment: Segment; ageBand: string; budgetUsd: number; windowDays: WindowDays };
 
-/** The share of a matched control that improves, from the guarded aggregate; null when that cell is suppressed. */
-export type Baseline = { improvedRate: number | null; cohort: number | null; fallbackRate: number };
+/**
+ * The share of an untreated cohort that improves, always from a guarded aggregate.
+ * `improvedRate` is the segment and age band cell; `fallbackRate` is the all-segment cell that
+ * stands in when that one is suppressed. Both can be null: at a high enough minimum cohort the
+ * guard suppresses even the all-segment cell, and then there is no control to simulate against.
+ * We never substitute a made-up number for a suppressed one.
+ */
+export type Baseline = { improvedRate: number | null; cohort: number | null; fallbackRate: number | null; fallbackCohort: number | null };
+
+/** The rate the simulation will use, or null when the guard leaves us without one. */
+export function controlRateFor(baseline: Baseline): number | null {
+  return baseline.improvedRate ?? baseline.fallbackRate;
+}
 
 /** Estimated lift in improvement rate when the brand's product joins the blueprint. Labelled estimate in the UI. */
 export const LIFT_BY_SEGMENT: Record<Segment, number> = { androgen: 0.09, insulin: 0.14, cortisol: 0.11, nutrient: 0.16, inflammation: 0.12, mixed: 0.08 };
 
 export const CPM_USD = 18;
-export const PURCHASE_RATE = 0.012;
+/**
+ * Purchases per impression for a $199-249 at-home test sold from a brand placement: about a
+ * half-percent click-through and a two-percent conversion on the landing page. It implies an
+ * acquisition cost near $180, which is the range a direct-to-consumer health founder recognises.
+ */
+export const PURCHASE_RATE = 0.0001;
 export const REGISTER_RATE = 0.82;
 export const RETEST_RATE_BY_WINDOW: Record<WindowDays, number> = { 30: 0.12, 60: 0.34, 90: 0.58 };
 
@@ -31,6 +47,13 @@ export type Simulation = {
   retested: number;
   treatedImproved: number;
   treatedRate: number | null;
+  /** The lift actually applied after the 98% ceiling, which is what the treated rate reflects. */
+  effectiveLift: number;
+  liftCapped: boolean;
+  /** 95% interval on the observed difference between the two arms. */
+  liftInterval: [number, number];
+  /** False when that interval straddles zero: the cohorts are too small to resolve the effect. */
+  liftResolved: boolean;
   controlSize: number;
   controlImproved: number;
   controlRate: number;
@@ -40,19 +63,29 @@ export type Simulation = {
   costPerRetest: number | null;
 };
 
-export function simulate(inputs: BrandInputs, baseline: Baseline): Simulation {
-  const rng = seedrandom(`brand-${inputs.segment}-${inputs.ageBand}-${inputs.budgetUsd}-${inputs.windowDays}`);
+/** Returns null when the guard leaves no control cohort; the page says so rather than inventing one. */
+export function simulate(inputs: BrandInputs, baseline: Baseline): Simulation | null {
+  const controlRate = controlRateFor(baseline);
+  if (controlRate === null) return null;
+  // The window is not in the seed: how long you wait for a retest cannot change how many people bought.
+  const rng = seedrandom(`brand-${inputs.segment}-${inputs.ageBand}-${inputs.budgetUsd}`);
   const exposures = Math.round((inputs.budgetUsd / CPM_USD) * 1000);
   const purchases = binomial(rng, exposures, PURCHASE_RATE * segmentAppeal(inputs.segment));
   const registered = binomial(rng, purchases, REGISTER_RATE);
   const retested = binomial(rng, registered, RETEST_RATE_BY_WINDOW[inputs.windowDays]);
 
-  const controlRate = baseline.improvedRate ?? baseline.fallbackRate;
-  const controlSize = Math.max(retested, baseline.cohort ?? retested);
+  // The control is the cohort the guarded rate was measured on, not a cohort we wished into being.
+  const controlSize = baseline.cohort ?? baseline.fallbackCohort ?? retested;
   const controlImproved = binomial(rng, controlSize, controlRate);
-  const treatedImproved = binomial(rng, retested, Math.min(0.98, controlRate + LIFT_BY_SEGMENT[inputs.segment]));
+  // A ceiling, because no intervention takes a cohort to certainty. When the control already
+  // improves at 89% the declared segment lift cannot fit underneath it, so report what was used.
+  const treatedProbability = Math.min(0.98, controlRate + LIFT_BY_SEGMENT[inputs.segment]);
+  const effectiveLift = treatedProbability - controlRate;
+  const treatedImproved = binomial(rng, retested, treatedProbability);
   const treatedRate = retested > 0 ? treatedImproved / retested : null;
-  const observedControlRate = controlSize > 0 ? controlImproved / controlSize : controlRate;
+  const observedControl = controlSize > 0 ? controlImproved / controlSize : controlRate;
+  const difference = (treatedRate ?? observedControl) - observedControl;
+  const interval = confidenceInterval(difference, treatedRate ?? observedControl, retested, observedControl, controlSize);
 
   return {
     exposures,
@@ -61,14 +94,29 @@ export function simulate(inputs: BrandInputs, baseline: Baseline): Simulation {
     retested,
     treatedImproved,
     treatedRate,
+    effectiveLift,
+    liftCapped: effectiveLift < LIFT_BY_SEGMENT[inputs.segment] - 1e-9,
+    liftInterval: interval,
+    liftResolved: interval[0] > 0 || interval[1] < 0,
     controlSize,
     controlImproved,
-    controlRate: observedControlRate,
-    liftPoints: treatedRate === null ? null : treatedRate - observedControlRate,
-    liftRelative: treatedRate === null || observedControlRate === 0 ? null : treatedRate / observedControlRate - 1,
+    controlRate: observedControl,
+    liftPoints: treatedRate === null ? null : treatedRate - observedControl,
+    liftRelative: treatedRate === null || observedControl === 0 ? null : treatedRate / observedControl - 1,
     baselineFromGuard: baseline.improvedRate !== null,
     costPerRetest: retested > 0 ? inputs.budgetUsd / retested : null,
   };
+}
+
+/**
+ * 95% interval on the difference between two proportions. It is here because with a few dozen
+ * retests on each side the noise is larger than any plausible product effect, and a portal that
+ * hides that is selling a number it cannot support. This is the argument for volume of retests.
+ */
+export function confidenceInterval(difference: number, p1: number, n1: number, p2: number, n2: number): [number, number] {
+  if (n1 < 1 || n2 < 1) return [difference, difference];
+  const se = Math.sqrt((p1 * (1 - p1)) / n1 + (p2 * (1 - p2)) / n2);
+  return [difference - 1.96 * se, difference + 1.96 * se];
 }
 
 /** Some segments convert better from a brand placement; a small, documented nudge around 1. */
