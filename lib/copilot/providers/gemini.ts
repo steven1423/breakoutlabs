@@ -78,7 +78,18 @@ export class GeminiProvider implements ModelProvider {
     };
   }
 
+  /**
+   * One-shot completion. Gemini occasionally returns an empty candidate; the streaming path
+   * already re-samples those, so this one does too rather than surfacing a blank answer.
+   */
   async complete(system: string, user: string): Promise<string> {
+    for (let attempt = 0; ; attempt++) {
+      const text = await this.completeOnce(system, user);
+      if (text.trim() !== "" || attempt >= 2) return text;
+    }
+  }
+
+  private async completeOnce(system: string, user: string): Promise<string> {
     const response = await this.client.models.generateContent({
       model: this.model,
       contents: [{ role: "user", parts: [{ text: user }] }],

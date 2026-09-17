@@ -1,5 +1,10 @@
 import type { ToolCallRecord } from "@/lib/copilot/loop";
 
+/** A raw query returns one row whether it holds one record or the table, so the panel shows the payload size too. */
+function formatBytes(bytes: number): string {
+  return bytes < 1024 ? `${bytes} B` : `${Math.round(bytes / 1024)} KB`;
+}
+
 /** Every tool call behind an answer, in order: name, arguments, rows, elapsed, and the SQL for raw queries. */
 export function TransparencyPanel({ calls, capped }: { calls: ToolCallRecord[]; capped: boolean }) {
   if (calls.length === 0) return <p className="text-13 text-muted">No tool calls. The answer used nothing from the database.</p>;
@@ -17,7 +22,7 @@ export function TransparencyPanel({ calls, capped }: { calls: ToolCallRecord[]; 
                 {c.name}
               </span>
               <span className="text-muted">
-                {c.error ? <span className="text-seeded">error</span> : `${c.rowCount ?? 0} rows`}, {c.ms} ms
+                {c.error ? <span className="text-seeded">error</span> : `${c.rowCount ?? 0} rows`}{c.bytes === undefined ? "" : `, ${formatBytes(c.bytes)}`}, {c.ms} ms
               </span>
             </div>
             <pre className="mt-1 overflow-auto whitespace-pre-wrap break-all text-muted">{JSON.stringify(c.input)}</pre>

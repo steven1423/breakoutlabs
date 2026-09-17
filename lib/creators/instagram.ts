@@ -1,4 +1,4 @@
-import { redactEmails } from "./crosslinks.ts";
+import { redactContacts } from "./crosslinks.ts";
 import type { CreatorProfile, CreatorSource, CreatorStub, FetchJson, ResponseCache } from "./types.ts";
 import { CACHE_TTL_MS } from "./youtube.ts";
 
@@ -59,8 +59,8 @@ export function parseBusinessDiscovery(json: unknown, fetchedAt: string): Creato
     followers,
     engagementRate: followers > 0 && media.length > 0 ? Math.round((mean / followers) * 10_000) / 10_000 : null,
     avgViews: null,
-    bio: redactEmails(str(account.biography)).slice(0, 1_000),
-    recentTitles: media.map((m) => redactEmails(str(m.caption).split("\n")[0]).slice(0, 120)).filter(Boolean),
+    bio: redactContacts(str(account.biography)).slice(0, 1_000),
+    recentTitles: media.map((m) => redactContacts(str(m.caption).split("\n")[0]).slice(0, 120)).filter(Boolean),
     crossLinks: [],
     fetchedAt,
   };

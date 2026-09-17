@@ -1,11 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { runAllocator, type AllocatorRun } from "@/lib/allocator/db";
-import { createProvider } from "@/lib/copilot";
-import { generateCreatorCard } from "@/lib/creators/card";
-import { enrichCreator, runDiscovery, type DiscoveryResult } from "@/lib/creators/discover";
-import { createServiceSupabase } from "@/lib/db/service";
+import { runAllocator, type AllocatorRun } from "../allocator/db.ts";
+import { createProvider } from "../copilot/index.ts";
+import { generateCreatorCard } from "../creators/card.ts";
+import { enrichCreator, runDiscovery, type DiscoveryResult } from "../creators/discover.ts";
+import { createServiceSupabase } from "../db/service.ts";
 
 export type DiscoverState = { result: DiscoveryResult | null; error: string | null };
 

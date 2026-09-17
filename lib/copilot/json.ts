@@ -1,5 +1,5 @@
 import type { z } from "zod";
-import type { ModelProvider } from "./provider.ts";
+import { withRetries, type ModelProvider } from "./provider.ts";
 
 /**
  * One JSON object from the model, validated by a zod schema, with one corrective retry.
@@ -9,7 +9,7 @@ export async function completeJson<T extends z.ZodType>(provider: ModelProvider,
   let lastError = "";
   for (let attempt = 0; attempt < 2; attempt++) {
     const prompt = attempt === 0 ? user : `${user}\n\nYour previous reply was not valid: ${lastError}. Reply with the JSON object only.`;
-    const text = await provider.complete(instructions, prompt);
+    const text = await withRetries(() => provider.complete(instructions, prompt));
     const valid = schema.safeParse(parseJsonObject(text));
     if (valid.success) return valid.data;
     lastError = valid.error.issues.map((i) => `${i.path.join(".")} ${i.message}`).join("; ") || "not JSON";

@@ -1,9 +1,12 @@
 import { createServiceSupabase, type ServiceClient } from "../db/service.ts";
 import { createInstagramSource, createYoutubeSource, dbSearchQuota, insertCrossLinks, recordEnrichError, upsertProfiles } from "./db.ts";
 import type { CreatorProfile, CreatorStub } from "./types.ts";
-import { DISCOVERY_QUERIES, QuotaExhaustedError, type YoutubeSource } from "./youtube.ts";
+import { DISCOVERY_QUERIES, MIN_SUBSCRIBERS, QuotaExhaustedError, type YoutubeSource } from "./youtube.ts";
 
-export type Collected = { profiles: CreatorProfile[]; crossLinks: CreatorStub[]; quotaExhausted: boolean };
+/** Candidates enriched per slot we want to fill, because the floor rejects most of them. */
+export const OVERSAMPLE = 4;
+
+export type Collected = { profiles: CreatorProfile[]; crossLinks: CreatorStub[]; quotaExhausted: boolean; belowFloor: number };
 
 /**
  * Runs every query with a per-query cap so each one contributes, keeps the first `limit` unique channels,
@@ -11,7 +14,9 @@ export type Collected = { profiles: CreatorProfile[]; crossLinks: CreatorStub[];
  */
 export async function collectYoutube(source: YoutubeSource, limit: number, queries: readonly string[] = DISCOVERY_QUERIES): Promise<Collected> {
   const stubs = new Map<string, CreatorStub>();
-  const perQuery = Math.max(5, Math.ceil(limit / queries.length));
+  // Ask for far more candidates than we need: a search call costs the same 100 units whether it
+  // returns 5 results or 50, and most channels found this way sit under the subscriber floor.
+  const perQuery = Math.min(50, Math.max(12, Math.ceil((limit * OVERSAMPLE) / queries.length)));
   let quotaExhausted = false;
   for (const query of queries) {
     try {
@@ -22,8 +27,11 @@ export async function collectYoutube(source: YoutubeSource, limit: number, queri
       break;
     }
   }
-  const profiles = await source.enrichMany([...stubs.values()].slice(0, limit));
-  return { profiles, crossLinks: profiles.flatMap((p) => p.crossLinks), quotaExhausted };
+  // Enrich more than we need, because subscriber counts only arrive with enrichment,
+  // then keep the first `limit` channels that clear the floor.
+  const enriched = await source.enrichMany([...stubs.values()].slice(0, limit * OVERSAMPLE));
+  const qualifying = enriched.filter((p) => p.followers >= MIN_SUBSCRIBERS).slice(0, limit);
+  return { profiles: qualifying, crossLinks: qualifying.flatMap((p) => p.crossLinks), quotaExhausted, belowFloor: enriched.length - qualifying.length };
 }
 
 export type DiscoveryResult = {
@@ -34,6 +42,8 @@ export type DiscoveryResult = {
   searchCallsUsed: number;
   searchCallsRemaining: number;
   quotaExhausted: boolean;
+  /** Channels found but dropped for being under the subscriber floor. */
+  belowFloor: number;
   /** Handles found this run, most followers first. The snapshot writer uses them. */
   handles: string[];
 };
@@ -53,6 +63,7 @@ export async function runDiscovery(limit = 40, db: ServiceClient = createService
     searchCallsUsed: source.searchCalls,
     searchCallsRemaining: await dbSearchQuota(db).remaining(),
     quotaExhausted: collected.quotaExhausted,
+    belowFloor: collected.belowFloor,
     handles: [...collected.profiles].sort((a, b) => b.followers - a.followers).map((p) => p.handle),
   };
 }

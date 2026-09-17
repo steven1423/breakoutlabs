@@ -36,6 +36,7 @@ export async function summarizeTicket(db: ServiceClient, provider: ModelProvider
     channel: ticket.channel,
     opened_at: ticket.opened_at,
     status: ticket.status,
+    classified_by_sweep: ticket.likely_cause,
     kit: ticket.kit,
     customer_first_name: ticket.customer?.first_name,
     plan: ticket.customer?.plan,

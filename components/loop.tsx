@@ -1,6 +1,6 @@
 /**
  * The loop (CLAUDE.md §14): Test → Blueprint → Track → Retest → Data → Growth → Test.
- * Seven arcs on one ring that draw themselves once on the landing page, then the thesis appears.
+ * Six arcs on one ring that draw themselves once on the landing page, then the thesis appears.
  * Pure SVG and CSS; under prefers-reduced-motion everything is simply there.
  */
 export const LOOP_STAGES = ["Test", "Blueprint", "Track", "Retest", "Data", "Growth"] as const;
@@ -9,6 +9,13 @@ const SIZE = 320;
 const R = 128;
 const C = SIZE / 2;
 const GAP_DEG = 9;
+/**
+ * The ring is 320 wide, but the labels sit outside it at radius R + 26, so the widest of them
+ * ("Blueprint" on the right, "Data" on the left) overhangs the ring by about half its own width.
+ * The viewBox is padded by that much or the words are clipped mid-letter.
+ */
+const PAD_X = 52;
+const PAD_Y = 16;
 
 function point(angleDeg: number, radius = R): [number, number] {
   const a = ((angleDeg - 90) * Math.PI) / 180;
@@ -26,9 +33,9 @@ export function Loop({ animate = true }: { animate?: boolean }) {
   const arcLength = ((step - GAP_DEG) / 360) * 2 * Math.PI * R;
   return (
     <svg
-      width={SIZE}
-      height={SIZE}
-      viewBox={`0 0 ${SIZE} ${SIZE}`}
+      width={SIZE + 2 * PAD_X}
+      height={SIZE + 2 * PAD_Y}
+      viewBox={`${-PAD_X} ${-PAD_Y} ${SIZE + 2 * PAD_X} ${SIZE + 2 * PAD_Y}`}
       role="img"
       aria-label="The loop: test, blueprint, track, retest, data, growth, and back to test"
       className={`loop ${animate ? "loop-animate" : ""}`}

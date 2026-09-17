@@ -2,21 +2,22 @@
 
 import { useMemo, useState } from "react";
 import { DataBadge } from "@/components/badge";
-import { AGE_BANDS, LIFT_BY_SEGMENT, WINDOWS, simulate, type Baseline, type BrandInputs, type WindowDays } from "@/lib/brand/simulate";
+import { AGE_BANDS, LIFT_BY_SEGMENT, WINDOWS, controlRateFor, simulate, type Baseline, type BrandInputs, type WindowDays } from "@/lib/brand/simulate";
 import { SEGMENTS, type Segment } from "@/lib/intelligence/guard";
 
 export type BaselineCell = { segment: string; ageBand: string; improvedRate: number | null; cohort: number | null };
 
-type Props = { baselines: BaselineCell[]; fallbackRate: number; minCohort: number };
+type Props = { baselines: BaselineCell[]; fallbackRate: number | null; fallbackCohort: number | null; minCohort: number };
 
 /** The brand's view of Year 3 (CLAUDE.md §10): pick a cohort, a budget and a window; see a simulated lift. Nothing here writes. */
-export function BrandSimulator({ baselines, fallbackRate, minCohort }: Props) {
+export function BrandSimulator({ baselines, fallbackRate, fallbackCohort, minCohort }: Props) {
   const [inputs, setInputs] = useState<BrandInputs>({ segment: "insulin", ageBand: "25-34", budgetUsd: 20_000, windowDays: 90 });
   const baseline = useMemo<Baseline>(() => {
     const cell = baselines.find((b) => b.segment === inputs.segment && b.ageBand === inputs.ageBand);
-    return { improvedRate: cell?.improvedRate ?? null, cohort: cell?.cohort ?? null, fallbackRate };
-  }, [baselines, inputs.segment, inputs.ageBand, fallbackRate]);
+    return { improvedRate: cell?.improvedRate ?? null, cohort: cell?.cohort ?? null, fallbackRate, fallbackCohort };
+  }, [baselines, inputs.segment, inputs.ageBand, fallbackRate, fallbackCohort]);
   const sim = useMemo(() => simulate(inputs, baseline), [inputs, baseline]);
+  const controlRate = controlRateFor(baseline);
 
   return (
     <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
@@ -44,11 +45,31 @@ export function BrandSimulator({ baselines, fallbackRate, minCohort }: Props) {
           </div>
         </Field>
         <p className="text-13 text-muted">
-          Control cohort: {sim.baselineFromGuard ? `${baseline.cohort} consenting ${inputs.segment}, ${inputs.ageBand} customers with a retest, improvement rate ${pct(baseline.improvedRate ?? 0)} (guarded aggregate)` : `that cell is below the minimum cohort of ${minCohort}, so the all-segment rate ${pct(fallbackRate)} stands in`}.
-          Lift estimate for {inputs.segment}: +{Math.round(LIFT_BY_SEGMENT[inputs.segment] * 100)} points.
+          Control cohort:{" "}
+          {sim === null
+            ? `no cohort survives the minimum of ${minCohort}, so there is nothing to compare against`
+            : sim.baselineFromGuard
+              ? `${baseline.cohort} consenting ${inputs.segment}, ${inputs.ageBand} customers with a retest, improvement rate ${pct(baseline.improvedRate ?? 0)} (guarded aggregate)`
+              : `that cell is below the minimum cohort of ${minCohort}, so the guarded all-segment rate ${pct(controlRate ?? 0)}, measured on ${fallbackCohort} customers, stands in`}
+          .{" "}
+          {sim === null
+            ? ""
+            : sim.liftCapped
+              ? `Lift estimate for ${inputs.segment} is +${Math.round(LIFT_BY_SEGMENT[inputs.segment] * 100)} points, applied as +${Math.round(sim.effectiveLift * 100)} here because the control already improves at ${pct(controlRate ?? 0)} and the simulation caps any cohort at 98%.`
+              : `Lift estimate for ${inputs.segment}: +${Math.round(sim.effectiveLift * 100)} points.`}
         </p>
       </form>
 
+      {sim === null ? (
+        <div className="rounded-panel border border-seeded bg-surface p-5 text-15">
+          <p className="text-18">No control cohort at this threshold</p>
+          <p className="mt-2 text-muted">
+            The minimum cohort is {minCohort}, and every cell that could serve as an untreated comparison has fewer people than that, so
+            the guard suppresses it. Rather than substitute a number, the portal stops here. Lower the threshold on the Intelligence page
+            and this simulation returns. This is the guard doing its job, not a failure.
+          </p>
+        </div>
+      ) : (
       <div className="flex flex-col gap-6">
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
           <Tile label="Exposures" value={sim.exposures.toLocaleString("en-US")} />
@@ -70,16 +91,23 @@ export function BrandSimulator({ baselines, fallbackRate, minCohort }: Props) {
               <dd className="text-13 text-muted">{sim.treatedImproved} of {sim.retested}</dd>
             </div>
             <div>
-              <dt className="text-13 text-muted">Matched control</dt>
+              <dt className="text-13 text-muted">Control cohort, untreated</dt>
               <dd className="text-24">{pct(sim.controlRate)}</dd>
               <dd className="text-13 text-muted">{sim.controlImproved} of {sim.controlSize}</dd>
             </div>
           </dl>
           <p className="mt-3 text-13 text-muted">
-            {sim.liftRelative === null ? "Not enough retests in this window to compare." : `Relative lift ${sim.liftRelative >= 0 ? "+" : ""}${Math.round(sim.liftRelative * 100)}%.`} Simulated on a synthetic cohort. In production this runs on guarded aggregates; brands never see customer rows.
+            {`Expected +${Math.round(sim.effectiveLift * 100)} points from the estimate; observed `}
+            {sim.liftPoints === null ? "–" : `${sim.liftPoints >= 0 ? "+" : "−"}${Math.abs(Math.round(sim.liftPoints * 100))}`} points, 95% interval{" "}
+            {pts(sim.liftInterval[0])} to {pts(sim.liftInterval[1])}.{" "}
+            {sim.liftResolved
+              ? "The interval excludes zero, so this cohort is large enough to see the effect."
+              : `The interval includes zero: ${sim.retested} retests against a control of ${sim.controlSize} cannot resolve an effect this size. Volume of retests is what makes this measurable, which is the whole argument for the 90-day loop.`}{" "}
+            Simulated on a synthetic cohort. In production this runs on guarded aggregates; brands never see customer rows.
           </p>
         </div>
       </div>
+      )}
     </div>
   );
 }
@@ -107,3 +135,4 @@ function Tile({ label, value, accent }: { label: string; value: string; accent?:
 
 const usd = (v: number) => `$${Math.round(v).toLocaleString("en-US")}`;
 const pct = (v: number) => `${Math.round(v * 100)}%`;
+const pts = (v: number) => `${v >= 0 ? "+" : "−"}${Math.abs(Math.round(v * 100))} pts`;

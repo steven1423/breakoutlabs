@@ -1,5 +1,5 @@
 import { SYSTEM_PROMPT } from "./prompt.ts";
-import { isRetryable, type ModelProvider, type NeutralMessage, type ToolCall, type ToolResultMessage, type TurnResult } from "./provider.ts";
+import { withRetries, type ModelProvider, type NeutralMessage, type ToolCall, type ToolResultMessage } from "./provider.ts";
 import type { ToolContext, ToolSpec } from "./tools.ts";
 import { toToolDefinitions } from "./tools.ts";
 
@@ -13,6 +13,7 @@ export type ToolCallRecord = {
   rowCount: number | null;
   ms: number;
   sql?: string;
+  bytes?: number;
   note?: string;
   error?: string;
 };
@@ -54,7 +55,7 @@ export async function runCopilot(opts: RunOptions): Promise<RunResult> {
 
   for (;;) {
     const allowTools = calls.length < maxCalls;
-    const turn = await withRetry(() =>
+    const turn = await withRetries(() =>
       opts.provider.streamTurn({
         system: SYSTEM_PROMPT,
         messages: [...messages],
@@ -91,18 +92,6 @@ function toNeutral(history: HistoryTurn[]): NeutralMessage[] {
   return history.map((h) => (h.role === "user" ? { role: "user", text: h.content } : { role: "assistant", text: h.content, toolCalls: [] }));
 }
 
-/** One retry cycle for rate limits and overload: 2 s, 4 s, 8 s. Anything else is thrown as is. */
-async function withRetry(fn: () => Promise<TurnResult>, attempts = 4): Promise<TurnResult> {
-  for (let attempt = 1; ; attempt++) {
-    try {
-      return await fn();
-    } catch (err) {
-      if (attempt >= attempts || !isRetryable(err)) throw err;
-      await new Promise((resolve) => setTimeout(resolve, 1000 * 2 ** attempt));
-    }
-  }
-}
-
 type RecordWithRows = ToolCallRecord & { rows?: unknown[] };
 
 async function executeTool(spec: ToolSpec | undefined, call: ToolCall, index: number, ctx: ToolContext): Promise<RecordWithRows> {
@@ -113,7 +102,7 @@ async function executeTool(spec: ToolSpec | undefined, call: ToolCall, index: nu
   if (!parsed.success) return { ...base, rowCount: null, ms: 0, error: `Invalid input: ${parsed.error.issues.map((i) => `${i.path.join(".")} ${i.message}`).join("; ")}` };
   try {
     const result = await spec.run(parsed.data, ctx);
-    return { ...base, rowCount: result.rowCount, ms: Date.now() - started, sql: result.sql, note: result.note, rows: result.rows };
+    return { ...base, rowCount: result.rowCount, ms: Date.now() - started, sql: result.sql, bytes: result.bytes, note: result.note, rows: result.rows };
   } catch (err) {
     return { ...base, rowCount: null, ms: Date.now() - started, error: err instanceof Error ? err.message : String(err) };
   }

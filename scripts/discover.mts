@@ -14,7 +14,7 @@ async function main() {
   const limit = Number(process.argv[2] ?? 40);
   const db = createServiceSupabase();
   const result = await runDiscovery(limit, db);
-  console.log(`channels ${result.channels}  added ${result.added}  updated ${result.updated}  cross-links ${result.crossLinks}  search calls used ${result.searchCallsUsed}, ${result.searchCallsRemaining} left today${result.quotaExhausted ? " (quota ran out)" : ""}`);
+  console.log(`channels ${result.channels}  added ${result.added}  updated ${result.updated}  cross-links ${result.crossLinks}  below the subscriber floor ${result.belowFloor}  search calls used ${result.searchCallsUsed}, ${result.searchCallsRemaining} left today${result.quotaExhausted ? " (quota ran out)" : ""}`);
 
   const { data, error } = await db.from("creators").select("handle, external_id, display_name, url, followers, engagement_rate, avg_views, bio, recent_titles").eq("platform", "youtube").in("handle", result.handles).order("followers", { ascending: false });
   if (error) throw new Error(error.message);

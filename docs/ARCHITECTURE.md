@@ -5,11 +5,11 @@ One diagram and one page. The sections below grew one per milestone.
 ```mermaid
 flowchart LR
   P[Persona in the URL ?as=] --> Shell[App shell: rail + page]
-  Shell --> Ops[/ops]
-  Shell --> Growth[/growth]
-  Shell --> Intel[/intelligence]
-  Shell --> Model[/model]
-  Shell --> Brand[/brand]
+  Shell --> Ops["/ops"]
+  Shell --> Growth["/growth"]
+  Shell --> Intel["/intelligence"]
+  Shell --> Model["/model"]
+  Shell --> Brand["/brand"]
   Ops --> SM[lib/state-machine]
   Ops --> CP[lib/copilot]
   Growth --> CR[lib/creators]
@@ -21,6 +21,8 @@ flowchart LR
   CR --> DB
   AL --> DB
   GD --> DB
+  Growth --> AT[lib/attribution: cost per retest]
+  AT --> DB
   CP -->|typed tools, service key| DB
   CP -->|one guarded SELECT, copilot role| DB
   CP --> LLM[Gemini or Anthropic]

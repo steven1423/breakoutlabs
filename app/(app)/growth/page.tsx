@@ -7,7 +7,7 @@ import { Leaderboard } from "@/components/leaderboard";
 import { PageHeader } from "@/components/page-header";
 import { loadLeaderboard, type LeaderboardRow } from "@/lib/attribution/queries";
 import { isConfigured } from "@/lib/env";
-import { formatCount, formatPercent, loadCreators, type CreatorListRow } from "@/lib/growth/queries";
+import { formatCount, loadCreators, type CreatorListRow } from "@/lib/growth/queries";
 import { parsePersona, withPersona, type Persona } from "@/lib/personas";
 
 export const metadata: Metadata = { title: "Growth" };
@@ -101,7 +101,7 @@ function CreatorTable({ rows, persona }: { rows: CreatorListRow[]; persona: Pers
               <td className="px-4 py-2 text-right">{formatCount(c.followers)}</td>
               <td className="px-4 py-2 text-right">{c.engagement_rate === null ? "–" : `${(c.engagement_rate * 100).toFixed(1)}%`}</td>
               <td className="px-4 py-2 text-right">{formatCount(c.avg_views)}</td>
-              <td className="px-4 py-2 text-right">{c.fitScore === null ? "–" : formatPercent(c.fitScore / 100)}</td>
+              <td className="px-4 py-2 text-right">{c.fitScore === null ? "–" : `${c.fitScore} / 100`}</td>
               <td className="px-4 py-2 text-muted">{c.source}</td>
               <td className="px-4 py-2"><DataBadge status={c.data_status} reason={c.enrich_error ?? undefined} /></td>
             </tr>

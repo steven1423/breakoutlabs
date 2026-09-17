@@ -26,9 +26,40 @@ function clean(raw: string): string {
   return raw.replace(/[._]+$/, "");
 }
 
-/** We never store an email address, even a public business one (CLAUDE.md §16). */
+/**
+ * We never store a real email address or phone number, even a public business one (CLAUDE.md §16.5).
+ * Channel descriptions routinely carry both, so every free-text field is redacted on the way in,
+ * including the raw API responses we cache.
+ */
 const EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
+const PHONE_CANDIDATE = /\+?\d[\d\s().-]{7,}\d/g;
 
-export function redactEmails(text: string): string {
-  return text.replace(EMAIL, "[email removed]");
+export function redactContacts(text: string): string {
+  return text.replace(EMAIL, "[email removed]").replace(PHONE_CANDIDATE, redactIfPhone);
+}
+
+/**
+ * Nine or more digits in free text is treated as a phone number. That is deliberately
+ * eager: redacting a large number someone wrote in their bio costs nothing, and missing a
+ * real phone number violates §16.5. Eight digits or fewer keeps ISO dates intact.
+ */
+function redactIfPhone(match: string): string {
+  return match.replace(/\D/g, "").length >= 9 ? "[phone removed]" : match;
+}
+
+/** Free-text fields in a cached API response. Numbers and ids are left untouched. */
+const TEXT_KEYS = new Set(["description", "title", "caption", "biography", "name", "customUrl", "website"]);
+
+/** Redacts contact details inside a cached payload without disturbing its shape or its numbers. */
+export function redactPayload(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(redactPayload);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([key, v]) => [
+        key,
+        typeof v === "string" && TEXT_KEYS.has(key) ? redactContacts(v) : redactPayload(v),
+      ]),
+    );
+  }
+  return value;
 }

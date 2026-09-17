@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import { readPublicEnv } from "@/lib/env";
+import { readPublicEnv } from "../env.ts";
 
 /**
  * Supabase client for server components, server actions and route handlers.

@@ -16,6 +16,18 @@ describe("aggregates route parsing", () => {
     expect(q("intervention=magic")).toEqual({ error: "Unknown intervention: magic" });
   });
 
+  it("rejects a query specific enough to be a per-customer dump", () => {
+    const seven = q("dims=segment,region_state,age_band,sex,month,plan,channel&measure=count");
+    expect(seven).toHaveProperty("error");
+    expect((seven as { error: string }).error).toMatch(/at most 3 dimensions and filters/);
+    expect(q("dims=month,channel&segment=androgen&age_band=25-34&region_state=FL")).toHaveProperty("error");
+    expect(q("dims=segment,age_band&region_state=FL")).toHaveProperty("query");
+  });
+
+  it("deduplicates repeated dimensions rather than counting them twice", () => {
+    expect(q("dims=segment,segment,segment")).toEqual(q("dims=segment"));
+  });
+
   it("has no parameter that yields rows: rows, limit, customer_id and format=rows change nothing", () => {
     const plain = q("dims=segment");
     expect(q("dims=segment&rows=1")).toEqual(plain);

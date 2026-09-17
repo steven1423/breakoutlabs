@@ -30,6 +30,12 @@ async function main() {
   const dataset = generateDataset();
   console.log(`checksum ${checksum(dataset)}`);
 
+  // settings.claude_model exists because §5 asks for it. Keep it honest about what is configured
+  // here, so the database never contradicts the provider the app is actually running.
+  const { copilotModel } = await import("../lib/copilot/env.ts");
+  const model = await db.from("settings").upsert({ key: "claude_model", value: copilotModel() });
+  if (model.error) throw new Error(`settings.claude_model: ${model.error.message}`);
+
   const reset = await db.rpc("reset_synthetic_data");
   if (reset.error) throw new Error(`reset failed: ${reset.error.message}`);
 

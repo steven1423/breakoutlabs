@@ -17,7 +17,7 @@ export function DiscoverButton({ configured }: { configured: boolean }) {
       {state.error ? <span className="text-15 text-seeded">Discovery failed: {state.error}</span> : null}
       {state.result ? (
         <span className="text-15 text-muted">
-          {state.result.channels} channels, {state.result.added} new, {state.result.updated} refreshed, {state.result.crossLinks} cross-links added.
+          {state.result.channels} channels, {state.result.added} new, {state.result.updated} refreshed, {state.result.crossLinks} cross-links added, {state.result.belowFloor} dropped under the subscriber floor.
           {" "}{state.result.searchCallsUsed} search calls used, {state.result.searchCallsRemaining} left today.
           {state.result.quotaExhausted ? " Quota ran out; the rest came from cache." : ""}
         </span>

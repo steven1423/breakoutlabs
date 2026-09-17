@@ -110,6 +110,23 @@ describe("Gemini provider", () => {
     await attempt.catch((err) => expect(isRetryable(err)).toBe(true));
   });
 
+  it("re-samples a one-shot completion that comes back empty", async () => {
+    const replies = ["", "", '{"ok":true}'];
+    let calls = 0;
+    const provider = new GeminiProvider(
+      {
+        models: {
+          generateContentStream: async () => (async function* () {})() as never,
+          generateContent: async () => ({ text: replies[calls++] }) as unknown as GenerateContentResponse,
+        },
+      },
+      "m",
+      "low",
+    );
+    expect(await provider.complete("s", "u")).toBe('{"ok":true}');
+    expect(calls).toBe(3);
+  });
+
   it("maps every effort level to a thinking budget", () => {
     expect(THINKING_BUDGET).toEqual({ low: 0, medium: 1024, high: 4096, xhigh: -1, max: -1 });
   });

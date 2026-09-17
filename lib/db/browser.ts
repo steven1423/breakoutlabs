@@ -1,5 +1,5 @@
 import { createBrowserClient } from "@supabase/ssr";
-import { readPublicEnv } from "@/lib/env";
+import { readPublicEnv } from "../env.ts";
 
 /** Supabase client for client components. Uses the publishable key; RLS applies. */
 export function createBrowserSupabase() {
