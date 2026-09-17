@@ -1,8 +1,8 @@
-import type { Database } from "@/lib/db/types";
-import { createServiceSupabase } from "@/lib/db/service";
-import { loadSlaHours } from "@/lib/state-machine/db";
-import { slaStatus, type SlaHours, type SlaStatus } from "@/lib/state-machine/sla";
-import { KIT_STATES, type KitState } from "@/lib/state-machine/transitions";
+import type { Database } from "../db/types.ts";
+import { createServiceSupabase } from "../db/service.ts";
+import { loadSlaHours } from "../state-machine/db.ts";
+import { slaStatus, type SlaHours, type SlaStatus } from "../state-machine/sla.ts";
+import { KIT_STATES, type KitState } from "../state-machine/transitions.ts";
 
 export type { KitState };
 type Tables = Database["public"]["Tables"];
@@ -102,13 +102,17 @@ export function humanise(value: string): string {
 /** Newest proposals first, for the /ops queue. */
 export async function listPendingActions(limit = 30) {
   const db = createServiceSupabase();
-  const { data, error } = await db
-    .from("pending_actions")
-    .select("id, type, status, proposed_by, created_at, payload, customer:customers(first_name)")
-    .order("created_at", { ascending: false })
-    .limit(limit);
-  if (error) throw new Error(error.message);
-  return data;
+  const [page, total] = await Promise.all([
+    db
+      .from("pending_actions")
+      .select("id, type, status, proposed_by, created_at, payload, customer:customers(first_name)")
+      .order("created_at", { ascending: false })
+      .limit(limit),
+    db.from("pending_actions").select("*", { count: "exact", head: true }).eq("status", "proposed"),
+  ]);
+  if (page.error) throw new Error(page.error.message);
+  if (total.error) throw new Error(total.error.message);
+  return { actions: page.data, proposedTotal: total.count ?? 0, limit };
 }
 
 export type TicketDetail = {

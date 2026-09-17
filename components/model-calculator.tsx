@@ -90,7 +90,7 @@ export function ModelCalculator() {
                   itemStyle={{ color: "var(--text)" }}
                   cursor={{ stroke: "var(--muted)" }}
                 />
-                <Legend wrapperStyle={{ fontSize: 13, color: "var(--muted)" }} iconType="plainline" />
+                <Legend content={() => <ChartLegend />} />
                 <Area type="monotone" dataKey="Membership" stackId="arr" stroke="var(--surface)" strokeWidth={2} fill="var(--chart-membership)" fillOpacity={1} isAnimationActive={false} />
                 <Area type="monotone" dataKey="Kits" stackId="arr" stroke="var(--surface)" strokeWidth={2} fill="var(--chart-kits)" fillOpacity={1} isAnimationActive={false} />
                 <Area type="monotone" dataKey="Brand portal" stackId="arr" stroke="var(--surface)" strokeWidth={2} fill="var(--chart-brand)" fillOpacity={1} isAnimationActive={false} />
@@ -130,6 +130,29 @@ export function ModelCalculator() {
 }
 
 type SliderProps = { label: string; value: number; bounds: { min: number; max: number; step: number }; format: (v: number) => string; onChange: (v: number) => void; accent?: boolean };
+
+const SERIES = [
+  { name: "Membership", color: "var(--chart-membership)" },
+  { name: "Kits", color: "var(--chart-kits)" },
+  { name: "Brand portal", color: "var(--chart-brand)" },
+];
+
+/**
+ * The stacked areas draw a surface-coloured stroke as the 2px gap between them, which made
+ * the default legend paint itself surface on surface. This one owns its colours.
+ */
+function ChartLegend() {
+  return (
+    <ul className="flex flex-wrap justify-center gap-4 pt-2 text-13 text-muted">
+      {SERIES.map((s) => (
+        <li key={s.name} className="flex items-center gap-1.5">
+          <span aria-hidden="true" className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: s.color }} />
+          {s.name}
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 function Slider({ label, value, bounds, format, onChange, accent }: SliderProps) {
   return (

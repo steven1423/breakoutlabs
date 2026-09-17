@@ -20,7 +20,7 @@ type Props = { searchParams: Promise<Record<string, string | string[] | undefine
 export default async function OpsPage({ searchParams }: Props) {
   const persona = parsePersona((await searchParams).as);
   let overview: OpsOverview | null = null;
-  let actions: Awaited<ReturnType<typeof listPendingActions>> = [];
+  let actions: Awaited<ReturnType<typeof listPendingActions>> | null = null;
   let failure: string | null = null;
   try {
     [overview, actions] = await Promise.all([loadOpsOverview(), listPendingActions()]);
@@ -50,8 +50,13 @@ export default async function OpsPage({ searchParams }: Props) {
 
       <section className="mt-10">
         <h2 className="text-24">Proposed actions</h2>
-        <p className="text-15 text-muted">Confirm records the decision in pending_actions. No email or SMS is sent by this system.</p>
-        <PendingActions actions={actions} />
+        <p className="text-15 text-muted">
+          Confirm records the decision in pending_actions. No email or SMS is sent by this system.
+          {actions && actions.proposedTotal > actions.actions.length
+            ? ` Showing the newest ${actions.actions.length} of ${actions.proposedTotal} still proposed.`
+            : ""}
+        </p>
+        <PendingActions actions={actions?.actions ?? []} />
       </section>
 
       <section className="mt-10">
