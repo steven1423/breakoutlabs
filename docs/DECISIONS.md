@@ -284,3 +284,26 @@ Every non-obvious choice gets an entry: what, why, the alternative considered. N
 - What: `complete()` on the Gemini provider had `maxOutputTokens: 1000`; it is now 8,000, matching `streamTurn()`.
 - Why: Gemini counts thinking tokens against the output limit. The creator card for a long channel description spent 788 tokens thinking and was cut off at 196 tokens of JSON (finish reason MAX_TOKENS, measured). The M3 ticket summaries were shorter and passed by luck.
 
+## M5 — Model
+
+### The formulas are §11 as written, plus three one-line additions
+- What: `lib/model/formulas.ts` implements every §11 line literally, including brand revenue as `(retested_cum / 12) × partner_gmv_per_year / 12 × take_rate`. Three additions, each one line and each named in the page's footnote: retests count three months after the order (a retest is a 90-day event); "ramps from month 18" is a linear ramp to 100% at month 24; and churn applies only to members who have not retested (`effective churn = churn × (1 − retest rate)`, after month 3).
+- Why: without the churn coupling the retest slider barely reaches the valuation, because §11 routes retests only into brand revenue, which is small at the defaults (about $17K of ARR at month 36 against $14M). The definition of done needs the slider to move the number, and "retested members stay" is the thesis of the product. Steven gave latitude to make up what §11 leaves open; all three are documented and reversible.
+- Alternative: reading the first `/12` in the brand formula as a typo (12× more brand revenue). Rejected because CLAUDE.md wins on a written formula and even the larger reading does not make the retest slider matter on its own.
+
+### Inputs live in the URL
+- What: `lib/model/url.ts` writes only non-default inputs to the query string and clamps what it reads to the slider bounds. The timeline's Year 2 link is `/model?plan=membership_first`.
+- Why: a linkable state is what makes the timeline honest ("this milestone is that setting") and lets Steven send a specific scenario. Junk in the URL falls back to defaults rather than breaking the page.
+
+### Outputs count to their new value; the chart does not animate
+- What: `CountUp` eases the six output tiles over half a second and is skipped under `prefers-reduced-motion`. The recharts areas have animation off.
+- Why: §14 allows motion only in response to actions and names "the model outputs counting to their new value". Animating the areas as well would compete with the tiles.
+
+### Chart colours are re-stepped tokens, validated
+- What: three CSS variables (`--chart-membership`, `--chart-kits`, `--chart-brand`) in the amber, teal and garnet hue family, one set per colour scheme. The stack order puts teal between amber and garnet. Both sets pass the dataviz palette validator (lightness band, chroma floor, CVD and normal-vision separation, contrast); the dark set carries a contrast warning on garnet, answered by the legend and the month-by-month table under the chart.
+- Why: the §14 tokens as-is fail the validator as a categorical set (teal reads grey, amber is too light on the dark surface, amber and garnet are too close as neighbours). The chart keeps the family and fixes the steps; the product tokens are untouched.
+
+### recharts, added here
+- What: one stacked area chart of ARR by source. `recharts` is the §3 chart library and this is its first use.
+- Why: this chart needs axes, a legend and a hover tooltip; the M4 sparklines did not. One library for all charts from here on.
+
