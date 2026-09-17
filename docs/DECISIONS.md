@@ -338,3 +338,26 @@ Every non-obvious choice gets an entry: what, why, the alternative considered. N
 - What: `simulate(inputs, baseline)` draws the funnel with `seedrandom` on the inputs, so the same picks give the same numbers. The control improvement rate is the guarded `improved_rate` for the chosen segment × age band; when that cell is suppressed the all-segment rate stands in and the page says so. Lift per segment is a labelled estimate, not a fit.
 - Why: §10 asks for a deterministic simulation on the synthetic cohort with every number badged Seeded. Reading the control from the guard means the brand page cannot see anything the intelligence page could not.
 
+## M7 — Landing, polish, docs
+
+### The loop is SVG arcs with a CSS dash animation, no library
+- What: six arcs on one ring (Test, Blueprint, Track, Retest, Data, Growth), each drawn by animating `stroke-dashoffset` with a per-arc delay, then the labels, the blood-spot mark, the three thesis lines and the button in sequence. Under `prefers-reduced-motion` the offsets are zeroed and nothing animates. No client JavaScript.
+- Why: §14 allows one orchestrated moment and asks for no animation library. CSS custom properties per arc keep the timing in one stylesheet, and the page stays static HTML.
+- Alternative: `framer-motion` on the landing page. Rejected as a dependency for one animation.
+
+### The kit rail shows marks, once per page load
+- What: each state on the `/ops` track renders one mark per kit, capped at 24 with a "+n" overflow, garnet for kits past their SLA; marks slide into place with a 12 ms stagger on first paint. The kit page passes no marks and keeps the plain track.
+- Why: §14 names the rail as the memorable element on `/ops` and asks for motion only in response to actions, so the marks move on load and never on a data refresh.
+
+### Contrast: the theme reset had removed Tailwind's white
+- What: `globals.css` resets `--color-*` to keep the palette to the §14 tokens, which also removed `white`; `text-white` on accent buttons silently fell back to the body text colour, dark on garnet in light mode (Lighthouse measured 2.26:1). `--color-white` is now defined in the theme.
+- Why: found by the M7 Lighthouse run on `/ops`. One token fixes every accent button.
+
+### Accessibility pass
+- What: a skip link to `main` in the app shell, `scope="col"` on every table header, a 404 that says what to try, an error boundary that names the failure and offers a retry. Focus rings and `aria-current` on the rail already existed.
+- Why: the M7 definition of done is Lighthouse accessibility of 95 or more on `/ops` and `/`.
+
+### Light-mode Live token darkened; no text at half opacity
+- What: light `--live` and `--optimal` moved from #2a7f77 to #25736c so 13px badge text on the light background passes 4.5:1. "No data" tiles and cells use a dashed border instead of `opacity-50` on muted text.
+- Why: Lighthouse on `/growth` and `/intelligence` in light mode. Opacity on text is a contrast bug waiting to happen; a dashed border says "empty" without dimming the label.
+

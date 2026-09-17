@@ -7,13 +7,21 @@ The internal operating system that closes the 90-day retest loop at BreakoutLabs
 - `docs/SCOPE.md` says what is Live, what is Seeded and what was cut.
 - `docs/ARCHITECTURE.md` is the one-page shape of the system.
 
-## Setup
+## Setup in 15 minutes
 
-Requires Node 22.18 or newer (the scripts use Node's built-in TypeScript support) and pnpm 10.
+Requires Node 22.18 or newer (the scripts use Node's built-in TypeScript support) and pnpm 10. You need a Supabase project (free tier is fine), and optionally a YouTube Data API key and a Gemini or Anthropic key.
 
-1. `pnpm install`
-2. Copy `.env.example` to `.env.local` and fill in the values. The example lists names only.
-3. `pnpm dev` and open http://localhost:3000
+1. `pnpm install` (about a minute).
+2. Copy `.env.example` to `.env.local`. Fill in:
+   - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (the publishable key) and `SUPABASE_SERVICE_ROLE_KEY` (the secret key) from your project's API settings.
+   - `SUPABASE_ACCESS_TOKEN` (a personal access token) and `SUPABASE_PROJECT_REF`, used only by `pnpm migrate` and `pnpm gen:types`.
+   - Optional: `YOUTUBE_API_KEY` turns the growth page's YouTube adapter Live. `MODEL_PROVIDER=gemini` with `GEMINI_API_KEY`, or `ANTHROPIC_API_KEY`, turns the copilot and creator cards on. Without them the pages say "Not configured" and stay Seeded.
+3. `pnpm migrate` applies the eight SQL migrations over HTTPS (about 30 seconds).
+4. `pnpm seed` loads 500 synthetic customers and everything attached to them, then prints row counts and a checksum. Run it twice: the checksum must not change.
+5. `pnpm dev` and open http://localhost:3000. Press Enter BreakoutOS; `/ops` should list kits with `BL-4471-XK` in Results locked.
+6. Optional: `pnpm sweep` opens tickets for stuck kits; `pnpm discover` pulls 40 YouTube channels (needs the key); `pnpm eval` runs the copilot evals (needs a model key).
+
+What each page needs: `/ops`, `/intelligence`, `/brand` and `/model` work with Supabase alone. `/growth` shows seeded creators without the YouTube key and live ones with it. The copilot and creator cards need a model key.
 
 ## Commands
 
@@ -32,13 +40,15 @@ Requires Node 22.18 or newer (the scripts use Node's built-in TypeScript support
 | `pnpm discover` | Runs YouTube discovery once (needs YOUTUBE_API_KEY), upserts the creators as Live and rewrites the seed snapshot |
 | `pnpm eval` | Runs the 15 copilot evals against the live database (needs the key for the configured `MODEL_PROVIDER`) |
 
-`pnpm discover` is added by the milestone that builds it.
-
 ## Database
 
 1. `pnpm migrate` applies `supabase/migrations/*.sql` in order and records them in `schema_migrations`.
 2. `pnpm gen:types` writes the TypeScript types for the schema.
 3. `pnpm seed` loads 500 synthetic customers and everything attached to them. Run it twice and the checksum must not change.
+
+## Checks before a merge
+
+`pnpm typecheck`, `pnpm lint`, `pnpm test` and `pnpm build` must all pass. For the accessibility bar, run `pnpm dlx lighthouse http://localhost:3000/ops --only-categories=accessibility --chrome-flags="--headless"` against `pnpm start`.
 
 ## Honesty labels
 

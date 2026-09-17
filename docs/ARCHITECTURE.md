@@ -1,6 +1,34 @@
 # Architecture
 
-One diagram and one page. The diagram arrives in M7; this file grows one short section per milestone.
+One diagram and one page. The sections below grew one per milestone.
+
+```mermaid
+flowchart LR
+  P[Persona in the URL ?as=] --> Shell[App shell: rail + page]
+  Shell --> Ops[/ops]
+  Shell --> Growth[/growth]
+  Shell --> Intel[/intelligence]
+  Shell --> Model[/model]
+  Shell --> Brand[/brand]
+  Ops --> SM[lib/state-machine]
+  Ops --> CP[lib/copilot]
+  Growth --> CR[lib/creators]
+  Growth --> AL[lib/allocator]
+  Intel --> GD[lib/intelligence guard]
+  Brand --> GD
+  Model --> MF[lib/model formulas]
+  SM --> DB[(Supabase Postgres, RLS)]
+  CR --> DB
+  AL --> DB
+  GD --> DB
+  CP -->|typed tools, service key| DB
+  CP -->|one guarded SELECT, copilot role| DB
+  CP --> LLM[Gemini or Anthropic]
+  CR --> YT[YouTube Data API v3]
+  CR -.->|behind keys| IG[Instagram Business Discovery]
+```
+
+Reads go from a page to a `lib/` module to Supabase; the model page reads nothing. Writes are few and named: the sweep, staff fixes, Confirm and Reject on proposals, ticket summaries, creator upserts, allocator runs, and the minimum-cohort setting. Nothing sends email or SMS.
 
 ## Shape after M0
 
