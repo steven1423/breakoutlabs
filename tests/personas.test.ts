@@ -27,13 +27,17 @@ describe("parsePersona", () => {
 });
 
 describe("SECTIONS", () => {
-  it("is one fixed list that names every persona exactly once", () => {
-    expect(SECTIONS.map((s) => s.persona)).toEqual([...PERSONAS]);
-    expect(SECTIONS.map((s) => s.label)).toEqual(PERSONAS.map((p) => PERSONA_META[p].label));
+  it("is one fixed list in which every persona owns at least one page", () => {
+    const owners = SECTIONS.flatMap((s) => s.links.map((l) => l.persona ?? s.persona));
+    for (const p of PERSONAS) expect(owners).toContain(p);
+    expect(SECTIONS.map((s) => s.label)).toEqual(["Support", "Growth", "Founder"]);
   });
 
-  it("points every persona home at a link in its own group", () => {
-    for (const s of SECTIONS) expect(s.links.map((l) => l.href)).toContain(PERSONA_META[s.persona].home);
+  it("points every persona home at a page that views the app as them", () => {
+    for (const p of PERSONAS) {
+      const link = SECTIONS.flatMap((s) => s.links.map((l) => ({ ...l, owner: l.persona ?? s.persona }))).find((l) => l.href === PERSONA_META[p].home);
+      expect(link?.owner).toBe(p);
+    }
   });
 });
 

@@ -4,7 +4,7 @@ import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
 import { openIntelligence } from "@/lib/intelligence";
 
-export const metadata: Metadata = { title: "Partner brand" };
+export const metadata: Metadata = { title: "Partner brand portal" };
 export const dynamic = "force-dynamic";
 
 const CAPTION = "Year 3, as a product. Simulated on a synthetic cohort.";
@@ -31,14 +31,14 @@ export default async function BrandPage() {
   if (failure) {
     return (
       <>
-        <PageHeader title="Partner brand" caption={CAPTION} status="seeded" reason="Database unavailable" />
+        <PageHeader title="Partner brand portal" caption={CAPTION} status="seeded" reason="Database unavailable" />
         <EmptyState title="Could not load the control cohort" body={`The database query failed: ${failure}. Check the Supabase env vars and try again.`} />
       </>
     );
   }
   return (
     <>
-      <PageHeader title="Partner brand" caption={CAPTION} status="seeded" reason="Simulated on a synthetic cohort. Brands never see customer rows." />
+      <PageHeader title="Partner brand portal" caption={CAPTION} status="seeded" reason="Simulated on a synthetic cohort. Brands never see customer rows." />
       <p className="mt-4 max-w-3xl text-15 text-muted">
         What a supplement or skincare brand would see: pick the root-cause segment and age band your product fits, a budget and a window, and the portal simulates exposure to purchases to registrations to retests to outcomes, against a matched control drawn from the guarded aggregates. Nothing on this page writes to the database.
       </p>

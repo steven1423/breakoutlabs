@@ -7,7 +7,7 @@ import { loadAllocatorView, type AllocatorView } from "@/lib/allocator/db";
 import { posteriorMean } from "@/lib/allocator/thompson";
 import { formatUsd } from "@/lib/growth/queries";
 
-export const metadata: Metadata = { title: "Allocator" };
+export const metadata: Metadata = { title: "Ad budget split" };
 export const dynamic = "force-dynamic";
 
 const CAPTION = "Budget follows retests, not followers. One Beta posterior per campaign; sample, allocate, floor 5%, cap 40%.";
@@ -23,7 +23,7 @@ export default async function AllocatorPage() {
   if (!view) {
     return (
       <>
-        <PageHeader title="Allocator" caption={CAPTION} status="seeded" reason="Database unavailable" />
+        <PageHeader title="Ad budget split" caption={CAPTION} status="seeded" reason="Database unavailable" />
         <EmptyState title="Could not load runs" body={`The database query failed: ${failure}. Check the Supabase env vars and try again.`} />
       </>
     );
@@ -32,7 +32,7 @@ export default async function AllocatorPage() {
   const { latest, previous, campaigns } = view;
   return (
     <>
-      <PageHeader title="Allocator" caption={CAPTION} status="seeded" reason="Synthetic attribution, real sampling" />
+      <PageHeader title="Ad budget split" caption={CAPTION} status="seeded" reason="Synthetic attribution, real sampling" />
       <section className="mt-8">
         <RunAllocator defaultBudget={latest?.budgetUsd ?? 10_000} />
       </section>

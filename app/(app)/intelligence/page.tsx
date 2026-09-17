@@ -9,7 +9,7 @@ import { openIntelligence, type Intelligence } from "@/lib/intelligence";
 import { INTERVENTION_TYPES, MARKERS, type Cell } from "@/lib/intelligence/guard";
 import { parsePersona } from "@/lib/personas";
 
-export const metadata: Metadata = { title: "Intelligence" };
+export const metadata: Metadata = { title: "Customer insights" };
 export const dynamic = "force-dynamic";
 
 const CAPTION = "We rent access to segments. We never sell data. The setting on the right is why.";
@@ -33,7 +33,7 @@ export default async function IntelligencePage({ searchParams }: Props) {
   if (!intel) {
     return (
       <>
-        <PageHeader title="Intelligence" caption={CAPTION} status="seeded" reason="Database unavailable" />
+        <PageHeader title="Customer insights" caption={CAPTION} status="seeded" reason="Database unavailable" />
         <EmptyState title="Could not load aggregates" body={`The database query failed: ${failure}. Check the Supabase env vars and try again.`} />
       </>
     );
@@ -53,7 +53,7 @@ export default async function IntelligencePage({ searchParams }: Props) {
 
   return (
     <>
-      <PageHeader title="Intelligence" caption={CAPTION} status="seeded" reason="Synthetic customers, real guard: every number passed the minimum-cohort check" />
+      <PageHeader title="Customer insights" caption={CAPTION} status="seeded" reason="Synthetic customers, real guard: every number passed the minimum-cohort check" />
       <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,3fr)_minmax(16rem,1fr)]">
         <div className="flex flex-col gap-10">
           <section>

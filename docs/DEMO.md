@@ -65,13 +65,13 @@ Say: the same fourteen orders look small until you price them by the thing that 
 
 Open hannah.hormonehealth's creator page for the AI card: fit 98 on the current cards (it moves a few points each time they are regenerated), androgen, a price band labelled estimate, and an outreach draft under 120 words.
 
-Then `/growth/allocator`. The latest run puts $846.58 on hannah and the $500 floor on tayglowsup out of $10,000 across 15 campaigns. Each campaign shows its Beta posterior as a density curve with the sampled draw marked.
+Then **Ad budget split** under Growth (`/growth/allocator`). The latest run puts $846.58 on hannah and the $500 floor on tayglowsup out of $10,000 across 15 campaigns. Each campaign shows its Beta posterior as a density curve with the sampled draw marked.
 
 Say: Thompson sampling over retest-per-order, with a 5% exploration floor and a 40% cap.
 
 ## Beat 4 — intelligence, 90 seconds
 
-Open **Aggregates** under Founder in the rail (`/intelligence`). 209 of 500 customers consented; only they are counted anywhere on this page. At a minimum cohort of 10, six states show a leading segment and 31 are hatched as insufficient data.
+Open **Customer insights** under Founder in the rail (`/intelligence`). 209 of 500 customers consented; only they are counted anywhere on this page. At a minimum cohort of 10, six states show a leading segment and 31 are hatched as insufficient data.
 
 Say: we rent access to segments and we never sell data. The setting on the right is why, and it is code, not copy.
 
@@ -83,7 +83,7 @@ If someone asks whether the API can be talked into returning rows: it cannot gro
 
 ## Beat 5 — the brand portal, 60 seconds
 
-Open **Brand portal** under Partner brand (`/brand`). Pick **insulin**, **25-34**, a $20,000 budget, a 90-day window.
+Open **Partner brand portal** under Growth (`/brand`). Pick **insulin**, **25-34**, a $20,000 budget, a 90-day window.
 
 The funnel reads about 1.1 million impressions, 111 purchases, 91 registrations, 58 retests, and roughly $345 per retest. The control cohort line says the segment cell is below the minimum of 10, so the guarded all-segment rate of 89% measured on 37 customers stands in.
 
@@ -95,7 +95,7 @@ If you raised the minimum cohort to 50 earlier and forgot to lower it, this page
 
 ## Beat 6 — the model, 60 seconds
 
-Open **Model** under Founder (`/model`). Choose **Membership first**. Drag the retest rate from 30% to 60%. The implied valuation moves from about $279M to about $343M and the tiles count to their new values.
+Open **Valuation calculator** under Founder (`/model`). Choose **Membership first**. Drag the retest rate from 30% to 60%. The implied valuation moves from about $279M to about $343M and the tiles count to their new values.
 
 Say: price for the retest. The slider is the thesis as arithmetic.
 
