@@ -35,7 +35,7 @@ Reply with one JSON object and nothing else:
 {"summary": "2 sentences on what they make and who watches",
  "fit_score": 0-100,
  "fit_reasoning": "3 short bullets, acne-specific, separated by newlines, each starting with '- '",
- "predicted_segment": "androgen|insulin|cortisol|nutrient|inflammation|mixed (the root-cause segment their audience most likely shares)",
+ "predicted_segment": "androgen|insulin|cortisol|nutrient|inflammation|mixed. Name the SINGLE most likely root cause their audience shares, on the evidence in their titles and bio: PCOS, spironolactone, birth control or jawline acne point to androgen; blood sugar, inositol, berberine or low-GI eating to insulin; stress, sleep, burnout or ashwagandha to cortisol; vitamin D, zinc or deficiency testing to nutrient; hs-CRP, omega-3 or anti-inflammatory eating to inflammation. Use mixed ONLY when two or more drivers genuinely share the content with no dominant one, and say in fit_reasoning why nothing dominates. A creator with no acne-specific signal at all is a low fit score, not automatically mixed.",
  "approach_angle": "1 sentence: the hook that would land with this creator",
  "price_band_low": integer, "price_band_high": integer (copy the estimate given in the input),
  "outreach_draft": "at most 120 words, plain, no hype, sentence case, offers a free kit and their results as content"}`;

@@ -46,6 +46,21 @@ export function isRetryable(err: unknown): boolean {
   return retryable === true || status === 429 || status === 503 || status === 529;
 }
 
+/**
+ * One retry cycle for rate limits and overload: 2 s, 4 s, 8 s. Anything else is thrown as is.
+ * Shared by the streaming loop and the one-shot JSON path so both behave the same under load.
+ */
+export async function withRetries<T>(fn: () => Promise<T>, attempts = 4): Promise<T> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (attempt >= attempts || !isRetryable(err)) throw err;
+      await new Promise((resolve) => setTimeout(resolve, 1000 * 2 ** attempt));
+    }
+  }
+}
+
 /** Thrown when the model returns no text and no tool call; the loop re-samples the turn. */
 export class EmptyTurnError extends Error {
   readonly retryable = true;
