@@ -4,7 +4,7 @@ What is Live, what is Seeded, and what was cut. Updated at the end of every mile
 
 Live means a real external API or real database logic in the production build. Seeded means synthetic data. If a milestone cannot meet its definition of done, this file says so and the page shows the same message.
 
-## Status after M4
+## Status after M5
 
 | View | Badge today | What fills it |
 |---|---|---|
@@ -17,7 +17,7 @@ Live means a real external API or real database logic in the production build. S
 | `/growth/allocator` | Seeded | Thompson-sampling runs over the synthetic attribution rows: posterior curves, sampled draws, this run against the last. |
 | `/intelligence` | Seeded (empty) | M6: guarded aggregates, maps, coverage, guardrails. |
 | `/brand` | Seeded (empty) | M6: simulated partner portal. Always Seeded by design. |
-| `/model` | Seeded (empty) | M5: calculator and timeline. |
+| `/model` | Seeded | The path-to-$1B calculator: sliders, six outputs that count to their new value, ARR by source over the horizon, the month-by-month table, the comparables note, and the Year 1 / 2 / 3 timeline linking into the app. No database; formulas in `lib/model`, inputs in the URL. |
 
 ## Cut list
 

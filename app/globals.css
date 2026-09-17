@@ -14,6 +14,10 @@
   --optimal: #4fb0a6;
   --high: #b23a48;
   --low: #d9a441;
+  /* Chart series (M5): same hue family as the tokens, re-stepped to pass the palette validator on this surface. */
+  --chart-membership: #b8892d;
+  --chart-kits: #009680;
+  --chart-brand: #a94753;
 }
 
 @media (prefers-color-scheme: light) {
@@ -31,6 +35,9 @@
     --optimal: #2a7f77;
     --high: #9e2f3c;
     --low: #8f6410;
+    --chart-membership: #ac7d1b;
+    --chart-kits: #008a74;
+    --chart-brand: #953543;
   }
 }
 

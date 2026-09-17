@@ -33,6 +33,10 @@ Postgres on Supabase. Four migrations under `supabase/migrations` (types and tab
 
 `lib/creators`: `types.ts` (the §8.1 `CreatorSource` interface, stubs and profiles), `youtube.ts` (Data API v3 adapter: discovery, enrichment through channels, uploads playlist and videos, pure parsers), `instagram.ts` and `search.ts` (Business Discovery and Serper behind their keys), `crosslinks.ts` (handle regexes), `pricing.ts` (tier bands), `quota.ts` (the daily search counter), `card.ts` (the §8.6 card through `completeJson`), `db.ts` (cache, quota store, upserts), `discover.ts` (the run the button, `pnpm discover` and `POST /api/creators/discover` share). `lib/attribution`: `metrics.ts` (the §8.7 formulas) and `queries.ts` (one row per campaign). `lib/allocator`: `thompson.ts` (posterior, Beta sampling, floor and cap, cents) and `db.ts` (weekly run persisted to `allocator_runs`). Pages: `/growth` (leaderboard with the FLIP toggle, creator table, Discover), `/growth/creators/[id]` (profile, card, cross-links, campaign metrics), `/growth/allocator` (runs and posterior curves).
 
+## Model (M5)
+
+`lib/model/formulas.ts` is pure: `project(inputs)` returns one row per month (new customers, kit revenue, members, membership revenue, retested cumulative, brand revenue, ARR, valuation) from the §11 formulas plus three documented one-line additions. `lib/model/url.ts` serialises the inputs to the query string. `components/model-calculator.tsx` (client) holds the sliders, the counting outputs and the one recharts chart; `components/model-timeline.tsx` links each year's milestone to the page that unlocks it. No database.
+
 ## Loop
 
 Test → Blueprint → Track → Retest → Data → Growth → Test. Ops owns the first four arcs, Intelligence owns Data, Growth owns the last.
