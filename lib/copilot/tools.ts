@@ -11,9 +11,11 @@ type Enums = Database["public"]["Enums"];
 const DAY_MS = 86_400_000;
 const ROW_CAP = 200;
 const QUERY_TIMEOUT_MS = 5000;
+/** Bytes a raw query may hand back. The row cap alone does not bound size: one aggregating select is one row. */
+export const RESULT_BYTE_CAP = 131_072;
 
-/** What every tool hands back. `sql` is set only by run_readonly_query, for the transparency panel. */
-export type ToolResult = { rows: unknown[]; rowCount: number; note?: string; sql?: string };
+/** What every tool hands back. `sql` and `bytes` are set only by run_readonly_query, for the transparency panel. */
+export type ToolResult = { rows: unknown[]; rowCount: number; note?: string; sql?: string; bytes?: number };
 
 export type AiSummary = { summary: string; likely_cause: Enums["likely_cause"]; evidence: string[]; suggested_reply: string };
 
@@ -377,7 +379,7 @@ export const COPILOT_SCHEMA = [
 
 export const runReadonlyQuery = tool({
   name: "run_readonly_query",
-  description: `Run one SELECT as the restricted copilot role over masked views. Use when the user asks you to run a query or write SQL, or when no typed tool fits. Max 200 rows, 5 second timeout. Refer to views unqualified. Views and columns: ${COPILOT_SCHEMA}. Enum columns hold lowercase values (kit state, plan, primary_segment).`,
+  description: `Run one SELECT as the restricted copilot role over masked views. Use when the user asks you to run a query or write SQL, or when no typed tool fits. Max 200 rows, 128 KB of results and a 5 second timeout; count or group in SQL rather than selecting whole rows. Refer to views unqualified. Views and columns: ${COPILOT_SCHEMA}. Enum columns hold lowercase values (kit state, plan, primary_segment).`,
   schema: z.object({ sql: z.string().min(1).max(4000) }),
   run: async ({ sql }, { db }) => {
     const guarded = guardSql(sql);
@@ -387,9 +389,21 @@ export const runReadonlyQuery = tool({
     const { data, error } = await db.rpc("copilot_run_readonly_query", { query: guarded.sql }).abortSignal(AbortSignal.timeout(QUERY_TIMEOUT_MS));
     if (error) throw new Error(`Query failed: ${error.message}`);
     const rows = Array.isArray(data) ? (data as unknown[]) : [];
-    return { rows, rowCount: rows.length, sql: guarded.sql, note: rows.length >= ROW_CAP ? `Capped at ${ROW_CAP} rows.` : undefined };
+    // The row cap does not bound size: `select jsonb_agg(...) from customers` is one row holding the table.
+    // Migration 0009 raises on the same ceiling; this repeats it so the limit holds against an older database.
+    const bytes = byteLength(rows);
+    if (bytes > RESULT_BYTE_CAP) {
+      throw new Error(
+        `Result is ${bytes} bytes, over the ${RESULT_BYTE_CAP} byte limit. Aggregate in SQL (count, avg, group by) or select fewer columns instead of returning whole rows.`,
+      );
+    }
+    return { rows, rowCount: rows.length, sql: guarded.sql, bytes, note: rows.length >= ROW_CAP ? `Capped at ${ROW_CAP} rows.` : undefined };
   },
 });
+
+function byteLength(rows: unknown[]): number {
+  return new TextEncoder().encode(JSON.stringify(rows)).length;
+}
 
 export const proposeAction = tool({
   name: "propose_action",
