@@ -1,6 +1,7 @@
 import type { ServiceClient } from "../db/service.ts";
 import type { Database, Json } from "../db/types.ts";
 import { isConfigured } from "../env.ts";
+import { redactPayload } from "./crosslinks.ts";
 import { InstagramSource } from "./instagram.ts";
 import { parseQuota, remainingSearchCalls, takeSearchCall, type QuotaState } from "./quota.ts";
 import { SearchSource } from "./search.ts";
@@ -20,7 +21,8 @@ export function dbCache(db: ServiceClient): ResponseCache {
       return { payload: data.payload, fetchedAt: data.fetched_at };
     },
     async set(key, payload) {
-      const { error } = await db.from("api_cache").upsert({ key, payload: payload as Json, fetched_at: new Date().toISOString() });
+      // Redacted before it is stored: the raw responses carry creators' business emails and phone numbers.
+      const { error } = await db.from("api_cache").upsert({ key, payload: redactPayload(payload) as Json, fetched_at: new Date().toISOString() });
       if (error) throw new Error(error.message);
     },
   };
