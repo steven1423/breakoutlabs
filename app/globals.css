@@ -109,3 +109,9 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* Suppressed cells (M6): hatched, never blank, so "insufficient data" reads as a rule rather than a gap. */
+.hatched {
+  background: repeating-linear-gradient(135deg, var(--surface) 0 6px, var(--line) 6px 8px);
+}
+
