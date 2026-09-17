@@ -4,7 +4,6 @@ import {
   PERSONAS,
   PERSONA_META,
   SECTIONS,
-  navFor,
   parsePersona,
   withPersona,
 } from "@/lib/personas";
@@ -27,18 +26,14 @@ describe("parsePersona", () => {
   });
 });
 
-describe("navFor", () => {
-  it("puts the persona's own section first and keeps every section", () => {
-    for (const p of PERSONAS) {
-      const nav = navFor(p);
-      expect(nav[0].key).toBe(PERSONA_META[p].section);
-      expect(nav.map((s) => s.key).sort()).toEqual(SECTIONS.map((s) => s.key).sort());
-    }
+describe("SECTIONS", () => {
+  it("is one fixed list that names every persona exactly once", () => {
+    expect(SECTIONS.map((s) => s.persona)).toEqual([...PERSONAS]);
+    expect(SECTIONS.map((s) => s.label)).toEqual(PERSONAS.map((p) => PERSONA_META[p].label));
   });
 
-  it("points every persona home at a link in the rail", () => {
-    const hrefs = SECTIONS.flatMap((s) => s.links.map((l) => l.href));
-    for (const p of PERSONAS) expect(hrefs).toContain(PERSONA_META[p].home);
+  it("points every persona home at a link in its own group", () => {
+    for (const s of SECTIONS) expect(s.links.map((l) => l.href)).toContain(PERSONA_META[s.persona].home);
   });
 });
 

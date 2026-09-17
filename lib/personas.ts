@@ -11,13 +11,18 @@ export const PERSONA_PARAM = "as";
 export type SectionKey = "ops" | "growth" | "intelligence" | "brand";
 
 export type NavLink = { href: string; label: string };
-export type Section = { key: SectionKey; label: string; links: NavLink[] };
+/** One group of the rail. `persona` is who the group belongs to; opening one of its links views the app as them. */
+export type Section = { key: SectionKey; persona: Persona; label: string; links: NavLink[] };
 
-/** The four sections of the left rail, in default order. */
+/**
+ * The rail, in the one order it is ever shown. Groups are named after the persona that owns them,
+ * so the persona and the navigation are the same list rather than two lists that echo each other.
+ */
 export const SECTIONS: readonly Section[] = [
-  { key: "ops", label: "Ops", links: [{ href: "/ops", label: "Kits and tickets" }] },
+  { key: "ops", persona: "support", label: "Support", links: [{ href: "/ops", label: "Kits and tickets" }] },
   {
     key: "growth",
+    persona: "growth",
     label: "Growth",
     links: [
       { href: "/growth", label: "Creators" },
@@ -26,13 +31,14 @@ export const SECTIONS: readonly Section[] = [
   },
   {
     key: "intelligence",
-    label: "Intelligence",
+    persona: "founder",
+    label: "Founder",
     links: [
       { href: "/intelligence", label: "Aggregates" },
       { href: "/model", label: "Model" },
     ],
   },
-  { key: "brand", label: "Partner brand", links: [{ href: "/brand", label: "Brand portal" }] },
+  { key: "brand", persona: "brand", label: "Partner brand", links: [{ href: "/brand", label: "Brand portal" }] },
 ];
 
 export type PersonaMeta = { label: string; home: string; section: SectionKey };
@@ -52,14 +58,6 @@ export function isPersona(value: unknown): value is Persona {
 export function parsePersona(value: string | string[] | null | undefined): Persona {
   const single = Array.isArray(value) ? value[0] : value;
   return isPersona(single) ? single : DEFAULT_PERSONA;
-}
-
-/** The rail for a persona: their own section first, the rest in default order. */
-export function navFor(persona: Persona): Section[] {
-  const own = PERSONA_META[persona].section;
-  const first = SECTIONS.filter((s) => s.key === own);
-  const rest = SECTIONS.filter((s) => s.key !== own);
-  return [...first, ...rest];
 }
 
 /** Adds `?as=persona` to an internal link so the persona survives navigation. */
