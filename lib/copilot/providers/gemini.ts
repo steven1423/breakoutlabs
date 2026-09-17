@@ -82,7 +82,8 @@ export class GeminiProvider implements ModelProvider {
     const response = await this.client.models.generateContent({
       model: this.model,
       contents: [{ role: "user", parts: [{ text: user }] }],
-      config: { systemInstruction: system, maxOutputTokens: 1000, temperature: 0, responseMimeType: "application/json", thinkingConfig: { thinkingBudget: THINKING_BUDGET[this.effort] } },
+      // Thinking tokens count against maxOutputTokens on Gemini, so the limit must leave room for both.
+      config: { systemInstruction: system, maxOutputTokens: 8000, temperature: 0, responseMimeType: "application/json", thinkingConfig: { thinkingBudget: THINKING_BUDGET[this.effort] } },
     });
     return response.text ?? "";
   }

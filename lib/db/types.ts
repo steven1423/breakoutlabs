@@ -38,6 +38,24 @@ export type Database = {
         }
         Relationships: []
       }
+      api_cache: {
+        Row: {
+          fetched_at: string
+          key: string
+          payload: Json
+        }
+        Insert: {
+          fetched_at?: string
+          key: string
+          payload: Json
+        }
+        Update: {
+          fetched_at?: string
+          key?: string
+          payload?: Json
+        }
+        Relationships: []
+      }
       attributions: {
         Row: {
           campaign_id: string
@@ -302,6 +320,7 @@ export type Database = {
           data_status: Database["public"]["Enums"]["data_status"]
           display_name: string | null
           engagement_rate: number | null
+          enrich_error: string | null
           enriched_at: string | null
           external_id: string | null
           followers: number | null
@@ -318,6 +337,7 @@ export type Database = {
           data_status: Database["public"]["Enums"]["data_status"]
           display_name?: string | null
           engagement_rate?: number | null
+          enrich_error?: string | null
           enriched_at?: string | null
           external_id?: string | null
           followers?: number | null
@@ -334,6 +354,7 @@ export type Database = {
           data_status?: Database["public"]["Enums"]["data_status"]
           display_name?: string | null
           engagement_rate?: number | null
+          enrich_error?: string | null
           enriched_at?: string | null
           external_id?: string | null
           followers?: number | null

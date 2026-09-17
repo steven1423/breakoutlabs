@@ -29,6 +29,7 @@ Requires Node 22.18 or newer (the scripts use Node's built-in TypeScript support
 | `pnpm gen:types` | Regenerates `lib/db/types.ts` from the live schema |
 | `pnpm seed` | Wipes and reloads the synthetic dataset; prints counts and a checksum |
 | `pnpm sweep` | Runs the stuck-kit sweep once; safe to repeat |
+| `pnpm discover` | Runs YouTube discovery once (needs YOUTUBE_API_KEY), upserts the creators as Live and rewrites the seed snapshot |
 | `pnpm eval` | Runs the 15 copilot evals against the live database (needs the key for the configured `MODEL_PROVIDER`) |
 
 `pnpm discover` is added by the milestone that builds it.

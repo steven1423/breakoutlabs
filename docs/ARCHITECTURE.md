@@ -29,6 +29,10 @@ Postgres on Supabase. Four migrations under `supabase/migrations` (types and tab
 
 `lib/copilot`: `guard.ts` (pure SQL whitelist), `tools.ts` (ten zod-typed tools over the service client; `run_readonly_query` calls `copilot_run_readonly_query`, which switches to the `copilot` role and can only read masked views in schema `copilot`), `provider.ts` (the vendor-neutral `ModelProvider` interface) with `providers/anthropic.ts` and `providers/gemini.ts` behind `MODEL_PROVIDER`, `loop.ts` (streaming tool-use loop over a provider, max 8 calls, retries, transparency records), `summarize.ts` (ticket summary cached to `tickets.ai_summary`), `index.ts` (wiring, `createProvider()`). `POST /api/copilot` streams server-sent events to `components/copilot.tsx`; every answer carries a transparency panel. Proposals land in `pending_actions` and are confirmed or rejected by server actions. `pnpm eval` runs `evals/copilot.json`.
 
+## Growth (M4)
+
+`lib/creators`: `types.ts` (the §8.1 `CreatorSource` interface, stubs and profiles), `youtube.ts` (Data API v3 adapter: discovery, enrichment through channels, uploads playlist and videos, pure parsers), `instagram.ts` and `search.ts` (Business Discovery and Serper behind their keys), `crosslinks.ts` (handle regexes), `pricing.ts` (tier bands), `quota.ts` (the daily search counter), `card.ts` (the §8.6 card through `completeJson`), `db.ts` (cache, quota store, upserts), `discover.ts` (the run the button, `pnpm discover` and `POST /api/creators/discover` share). `lib/attribution`: `metrics.ts` (the §8.7 formulas) and `queries.ts` (one row per campaign). `lib/allocator`: `thompson.ts` (posterior, Beta sampling, floor and cap, cents) and `db.ts` (weekly run persisted to `allocator_runs`). Pages: `/growth` (leaderboard with the FLIP toggle, creator table, Discover), `/growth/creators/[id]` (profile, card, cross-links, campaign metrics), `/growth/allocator` (runs and posterior curves).
+
 ## Loop
 
 Test → Blueprint → Track → Retest → Data → Growth → Test. Ops owns the first four arcs, Intelligence owns Data, Growth owns the last.
