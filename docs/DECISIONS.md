@@ -361,3 +361,61 @@ Every non-obvious choice gets an entry: what, why, the alternative considered. N
 - What: light `--live` and `--optimal` moved from #2a7f77 to #25736c so 13px badge text on the light background passes 4.5:1. "No data" tiles and cells use a dashed border instead of `opacity-50` on muted text.
 - Why: Lighthouse on `/growth` and `/intelligence` in light mode. Opacity on text is a contrast bug waiting to happen; a dashed border says "empty" without dimming the label.
 
+## M8 — Hardening after an adversarial review
+
+Everything in this section was found by a preflight of the merged build and a nine-dimension hostile review, not by a user. Each entry says what was wrong, because a reviewer trusts a project that records its own defects more than one that reports only successes.
+
+### The aggregate guard now limits how specific a query may be
+- What: `guardedAggregate` refuses a query whose grouping dimensions plus active filters exceed three, counts filters toward that limit, and returns cells sorted by dimension value.
+- Why: suppression hides a cell's count, not its existence. Asking for all seven dimensions at once returned 209 suppressed cells for 209 consenting customers, each one a unique quasi-identifier tuple, emitted in database order so the CSV was itself a join key back to the customers table. Every cell was correctly marked suppressed and the export was still a per-customer dump, on the endpoint whose own panel promises row-level export does not exist. Three dimensions covers every view in the product: the map uses one, retention two, coverage two plus a region filter.
+- Alternative: redacting the dimension values of suppressed cells. Rejected because the hatched map needs to say which state is suppressed, and at three dimensions or fewer the cell label is public knowledge rather than a fingerprint.
+
+### The raw query path is bounded in bytes, not only in rows
+- What: migration 0009 adds a 128 KiB ceiling to `copilot_run_readonly_query`, `run_readonly_query` repeats the check in TypeScript so the limit holds against a database that has not been migrated, and the transparency panel prints the payload size beside the row count.
+- Why: the wrapper was `select ... from (select * from (%s) q limit 200) t`, which bounds the rows the query emits and not the data inside them. One aggregating select is one row: `select jsonb_agg(row_to_json(b)) from biomarker_results b` returned 864 KB in a single row, roughly 200,000 tokens pasted into the model's context and reported to the reviewer as "1 row". Rows were never the right unit for a cap whose purpose is to bound what one call can drag back.
+- What this does not fix, and the honest version to give a reviewer: a narrow aggregate still returns many records in one row. `select jsonb_agg(json_build_object('e',email_masked,'n',first_name)) from customers` is 18 KB and passes. There is no privilege boundary being crossed — the role can already read all 500 masked rows 200 at a time — so what the ceiling protects is context and cost, and what the byte count protects is the reviewer's ability to see that "1 row" held 18 KB. Counting records inside an arbitrary aggregate is not something a wrapper can do; the defence is the masked views, which is where it always was.
+- Alternative: rejecting aggregate functions in the guard. Rejected because `count`, `avg` and `group by` are the tools the model should be reaching for, and the prompt now tells it to.
+
+### Phone numbers are redacted, and the redaction now covers cached payloads
+- What: `redactEmails` became `redactContacts`, which also removes phone numbers, and `redactPayload` applies it to the free-text fields of every cached API response before `api_cache` stores it.
+- Why: §16.5 forbids storing a real email or phone number. Redaction ran on the profile but never on the raw response the cache kept, so 20 real personal email addresses sat in `api_cache`, including two addresses for the same named private individual. Three phone numbers and a clinic address also reached the committed snapshot. The rule is eager on purpose: nine digits in prose is treated as a phone number, because redacting a large number in a bio costs nothing and missing a real one is a violation.
+
+### Discovery has a subscriber floor
+- What: `MIN_SUBSCRIBERS = 1_000`, applied after enrichment, with four candidates oversampled per slot because a search call costs the same 100 units whether it returns five results or fifty.
+- Why: 23 of the original 40 live channels had under 1,000 subscribers and six had fewer than four, so the leaderboard was mostly private individuals posting about their own acne while the docs claimed public professional-account data. A partnership prospect needs an audience; the floor makes the claim true and the leaderboard worth looking at.
+
+### A channel with no uploads playlist no longer fails the run
+- What: `recentVideos` returns no videos when the playlist read fails, instead of propagating a 404.
+- Why: one channel in a forty-channel run had hidden its uploads playlist and killed the entire discovery run partway through.
+
+### The brand portal never invents a control rate
+- What: `Baseline.fallbackRate` is nullable and `simulate()` returns null when the guard leaves no usable control cohort; the page then explains that rather than showing numbers. The simulation also reports the lift it actually applied, and the retest window no longer seeds the funnel draws.
+- Why: three defects in one screen. A hardcoded 0.5 was presented as a measured rate whenever the minimum cohort rose above 37, which is exactly what typing the specified default of 50 during the intelligence beat would do. The declared segment lift of 14 points could never appear because the control already improves at 89% and the simulation caps any cohort at 98%, so the page contradicted itself one line apart. And the retest window was part of the random seed, so waiting longer for a retest changed how many people had bought.
+
+### The brand funnel implies a believable acquisition cost
+- What: purchases per impression moved from 1.2% to 0.01%.
+- Why: the old rate turned a $20,000 budget into 13,396 purchases of a $199 test, an implied acquisition cost of $1.49. A consumer-health founder stops listening at that number. The new rate implies about $180, which is the range the business actually lives in.
+
+### The creator card predicts a specific root cause
+- What: the card prompt now names the evidence for each segment and permits "mixed" only when no driver dominates.
+- Why: six of six regenerated cards answered "mixed", which makes the prediction look like a stub. With the evidence spelled out the same ten creators come back as androgen, insulin, inflammation, cortisol and mixed, with fit scores from 5 to 98.
+
+### One-shot completions re-sample an empty reply
+- What: `GeminiProvider.complete` retries up to twice when the candidate comes back empty, matching what `streamTurn` already did.
+- Why: card generation failed outright on an empty candidate. The streaming path had handled this since M4; the one-shot path had not, which is the kind of inconsistency that only shows up under load.
+
+### The scripts load .env.local
+- What: `migrate`, `seed`, `sweep`, `eval` and `discover` run under `node --env-file-if-exists=.env.local`.
+- Why: the README tells a stranger to put their credentials in `.env.local`, and then every script ran bare `node` with no dotenv anywhere in the project, so steps three, four and six of the setup could not work for anyone but me. That is the M7 definition of done failing in the one place a reviewer will actually try.
+
+### Smaller corrections from the same review
+- The landing loop's labels were clipped by the viewBox: "Blueprint" overhung the right edge by 25 units and "Data" the left by 10, so the opening frame of the demo read "Bluep" and "ata". The viewBox is now padded by the label overhang.
+- The model chart's legend painted itself surface-on-surface at 1:1 contrast, because the stacked areas use a surface-coloured stroke as the 2px gap between them and the default legend inherits that stroke. The legend now owns its colours.
+- `CountUp` animated from the last settled value rather than the one on screen, so dragging a slider lagged behind the finger on the exact gesture the page caption advertises.
+- The creator table rendered the 0-100 fit score as a percentage, so a score of 40 read "40%" next to a creator page saying "40 / 100".
+- The proposals list is capped at thirty and now says so; after a sweep there are 336.
+- The ticket summariser never saw the cause the sweep had already assigned, so the same screen could show two different causes. It now receives it and is told to agree unless the ticket text says otherwise.
+- `settings.claude_model` said `claude-sonnet-5` while the app ran Gemini. The seed now writes whatever provider is configured, so the database cannot contradict the product.
+- The architecture diagram used Mermaid's `[/label]` parallelogram syntax without closing it, so the one diagram in the docs rendered as a syntax error on GitHub. It also omitted `lib/attribution`, which computes the headline growth metric.
+- There was no favicon, so every page logged a 404 in the console.
+
