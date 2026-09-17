@@ -4,11 +4,11 @@ What is Live, what is Seeded, and what was cut. Updated at the end of every mile
 
 Live means a real external API or real database logic in the production build. Seeded means synthetic data. If a milestone cannot meet its definition of done, this file says so and the page shows the same message.
 
-## Status after M6
+## Status after M7
 
 | View | Badge today | What fills it |
 |---|---|---|
-| `/` landing | none (static) | Thesis lines and Enter exist. The loop animation is M7. |
+| `/` landing | none (static) | The loop draws itself once, the three thesis lines appear, then Enter. Static under reduced motion. |
 | `/ops` | Seeded, live queries | State track, stuck queue, run-sweep button, full kit table, the copilot (Live model calls through the configured provider: Gemini for the demo, Anthropic by default; disabled with a message when the key is missing), proposed actions with Confirm and Reject. |
 | `/ops/tickets/[id]` | Seeded, live queries | Ticket with kit state, AI summary and suggested reply (Live model call), cached on the ticket. |
 | `/ops/kits/[code]` | Seeded, live queries | Timeline with elapsed time per state, live SLA timer, tickets, proposed actions, staff fix for exception states. |
@@ -18,6 +18,31 @@ Live means a real external API or real database logic in the production build. S
 | `/intelligence` | Seeded | Prevalence by state, intervention to marker delta, retention by channel and plan, coverage by segment and age band with a state filter, and the guardrails widget (consent rate, editable minimum cohort, aggregates-only CSV export, no row export). Every number passed `guardedAggregate`. |
 | `/brand` | Seeded, always | A simulated Year 3 portal: segment, age band, budget and window in; exposure to outcomes and lift against a guarded control out. Deterministic, nothing written. |
 | `/model` | Seeded | The path-to-$1B calculator: sliders, six outputs that count to their new value, ARR by source over the horizon, the month-by-month table, the comparables note, and the Year 1 / 2 / 3 timeline linking into the app. No database; formulas in `lib/model`, inputs in the URL. |
+
+## The demo, beat by beat (CLAUDE.md §17)
+
+1. Landing: the loop draws, the thesis appears, Enter goes to `/ops` as Support.
+2. `/ops`: `BL-4471-XK` sits in Results locked past its 24 h SLA with the live timer on its kit page; the sweep has classified its ticket as portal lockout; the copilot answers "customers whose results are ready but haven't logged in for 7 days" with a table and the transparency panel; a nudge is proposed and confirmed into `pending_actions`, nothing is sent.
+3. `/growth`: a live YouTube creator card (Gemini); the leaderboard toggle flips tayglowsup and hannah.hormonehealth; the allocator moves budget toward hannah.hormonehealth.
+4. `/intelligence` as Founder: hatched suppressed states on the map; the coverage heatmap; raise the minimum cohort from 10 to 20 and cells disappear; export emits aggregates only.
+5. `/brand`: insulin, 25 to 34, a budget; simulated lift; Seeded on every number.
+6. `/model`: retest rate 30 to 60, plan to membership first, valuation moves; timeline links jump into the app.
+
+Everything above was exercised against the production build during its milestone; the results are in each PR.
+
+## Accessibility
+
+Lighthouse 13.4 accessibility on the production build, run in M7 after the fixes it found (a missing white token on accent buttons, inline links below the 24px tap target, a light-mode Live token at 4.35:1, muted text at half opacity):
+
+| Page | Score |
+|---|---|
+| `/` | 100 |
+| `/ops` | 100 |
+| `/growth` | 100 |
+| `/growth/allocator` | 100 |
+| `/intelligence` | 100 |
+| `/model` | 100 |
+| `/brand` | 100 |
 
 ## Cut list
 

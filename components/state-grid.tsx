@@ -27,7 +27,7 @@ export function StateGrid({ cells }: { cells: Cell[] }) {
           const style: React.CSSProperties = { gridRow: row + 1, gridColumn: col + 1 };
           if (!cell) {
             return (
-              <div key={state} role="listitem" style={style} className="flex flex-col rounded-control border border-line px-1.5 py-1 text-13 text-muted opacity-50" title={`${state}: no consenting customers`}>
+              <div key={state} role="listitem" style={style} className="flex flex-col rounded-control border border-dashed border-line px-1.5 py-1 text-13 text-muted" title={`${state}: no consenting customers`}>
                 <span>{state}</span>
               </div>
             );

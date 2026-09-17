@@ -113,5 +113,5 @@ function CreatorTable({ rows, persona }: { rows: CreatorListRow[]; persona: Pers
 }
 
 function Th({ children, right }: { children: React.ReactNode; right?: boolean }) {
-  return <th className={`px-4 py-2 font-medium ${right ? "text-right" : ""}`}>{children}</th>;
+  return <th scope="col" className={`px-4 py-2 font-medium ${right ? "text-right" : ""}`}>{children}</th>;
 }

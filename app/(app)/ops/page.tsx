@@ -3,7 +3,7 @@ import Link from "next/link";
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
 import { RunSweep } from "@/components/run-sweep";
-import { StateTrack } from "@/components/state-track";
+import { StateTrack, type TrackMarks } from "@/components/state-track";
 import { Copilot } from "@/components/copilot";
 import { PendingActions } from "@/components/pending-actions";
 import { copilotLabel, isCopilotConfigured } from "@/lib/copilot/env";
@@ -40,7 +40,7 @@ export default async function OpsPage({ searchParams }: Props) {
   return (
     <>
       <PageHeader title="Ops" caption={CAPTION} status="seeded" reason="Synthetic customers, live queries" />
-      <StateTrack counts={overview.countsByState} />
+      <StateTrack counts={overview.countsByState} marks={trackMarks(overview)} />
 
       <section className="mt-10">
         <h2 className="text-24">Copilot</h2>
@@ -74,6 +74,13 @@ export default async function OpsPage({ searchParams }: Props) {
       </section>
     </>
   );
+}
+
+/** Stuck kits per state, so the rail can colour their marks. */
+function trackMarks(overview: OpsOverview): TrackMarks {
+  const marks: TrackMarks = {};
+  for (const row of overview.stuck) marks[row.state] = { stuck: (marks[row.state]?.stuck ?? 0) + 1 };
+  return marks;
 }
 
 function StuckTable({ overview, persona }: { overview: OpsOverview; persona: Persona }) {
@@ -162,5 +169,5 @@ function KitLink({ row, persona }: { row: KitListRow; persona: Persona }) {
 }
 
 function Th({ children, right }: { children: React.ReactNode; right?: boolean }) {
-  return <th className={`px-4 py-2 font-medium ${right ? "text-right" : ""}`}>{children}</th>;
+  return <th scope="col" className={`px-4 py-2 font-medium ${right ? "text-right" : ""}`}>{children}</th>;
 }

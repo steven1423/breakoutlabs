@@ -13,8 +13,8 @@ export function CoverageHeatmap({ cells, region }: { cells: Cell[]; region: stri
       <table className="w-full text-15">
         <thead className="bg-surface text-left text-13 text-muted">
           <tr>
-            <th className="px-3 py-2 font-medium">Segment{region ? ` in ${region}` : ""}</th>
-            {AGE_BANDS.map((a) => <th key={a} className="px-3 py-2 text-right font-medium">{a}</th>)}
+            <th scope="col" className="px-3 py-2 font-medium">Segment{region ? ` in ${region}` : ""}</th>
+            {AGE_BANDS.map((a) => <th key={a} scope="col" className="px-3 py-2 text-right font-medium">{a}</th>)}
           </tr>
         </thead>
         <tbody>
@@ -23,7 +23,7 @@ export function CoverageHeatmap({ cells, region }: { cells: Cell[]; region: stri
               <td className="px-3 py-2">{s}</td>
               {AGE_BANDS.map((a) => {
                 const cell = byKey.get(key(s, a));
-                if (!cell) return <td key={a} className="px-3 py-2 text-right text-muted opacity-50">0</td>;
+                if (!cell) return <td key={a} className="px-3 py-2 text-right text-muted">0</td>;
                 if (cell.suppressed) return <td key={a} className="hatched px-3 py-2 text-right text-muted" title="Below the minimum cohort">n/a</td>;
                 const alpha = 0.1 + 0.6 * (cell.count / max);
                 return (
