@@ -104,6 +104,23 @@ describe("YoutubeSource", () => {
     expect(src.searchCalls).toBe(0);
   });
 
+  it("survives a channel whose uploads playlist is gone, rather than failing the whole run", async () => {
+    const cache = memoryCache();
+    const src = new YoutubeSource({
+      apiKey: "k",
+      cache,
+      takeSearchCall: async () => true,
+      fetchJson: async (url) => {
+        if (url.includes("/channels?")) return channelJson;
+        if (url.includes("/playlistItems?")) throw new Error("The playlist identified with the request's playlistId parameter cannot be found.");
+        throw new Error(`unexpected ${url}`);
+      },
+    });
+    const profiles = await src.enrichMany([{ platform: "youtube", handle: "UC1", url: "u", source: "youtube_api", externalId: "UC1" }]);
+    expect(profiles).toHaveLength(1);
+    expect(profiles[0]).toMatchObject({ handle: "@hannah", followers: 61_000, recentTitles: [], avgViews: null, engagementRate: null });
+  });
+
   it("throws QuotaExhaustedError on a search miss when the day's calls are spent", async () => {
     const { src } = source(memoryCache(), { allowed: false });
     await expect(src.discover("accutane before after", 10)).rejects.toThrow(/quota/i);

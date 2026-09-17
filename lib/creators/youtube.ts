@@ -1,4 +1,4 @@
-import { extractCrossLinks, redactEmails } from "./crosslinks.ts";
+import { extractCrossLinks, redactContacts } from "./crosslinks.ts";
 import type { CreatorProfile, CreatorSource, CreatorStub, FetchJson, ResponseCache } from "./types.ts";
 
 /**
@@ -18,6 +18,12 @@ export const DISCOVERY_QUERIES = [
 ] as const;
 
 export const CACHE_TTL_MS = 24 * 3_600_000;
+/**
+ * A partnership prospect needs an audience. Below this the channel is a private individual
+ * posting about their own acne, which is not someone to put on a leaderboard and not what
+ * "public professional-account data" means (CLAUDE.md §2).
+ */
+export const MIN_SUBSCRIBERS = 1_000;
 const API = "https://www.googleapis.com/youtube/v3";
 const RECENT_VIDEOS = 12;
 
@@ -79,12 +85,21 @@ export class YoutubeSource implements CreatorSource {
     return profiles;
   }
 
+  /**
+   * A channel can hide, empty or delete its uploads playlist, and the API answers 404. That is a
+   * fact about one channel, not a reason to fail a forty-channel run, so it yields no videos.
+   */
   private async recentVideos(playlistId: string): Promise<VideoSummary[]> {
-    const items = await this.get("playlistItems", { part: "contentDetails", playlistId, maxResults: String(RECENT_VIDEOS) });
-    const videoIds = parsePlaylistItems(items);
-    if (videoIds.length === 0) return [];
-    const json = await this.get("videos", { part: "snippet,statistics", id: videoIds.join(","), maxResults: String(RECENT_VIDEOS) });
-    return parseVideos(json);
+    try {
+      const items = await this.get("playlistItems", { part: "contentDetails", playlistId, maxResults: String(RECENT_VIDEOS) });
+      const videoIds = parsePlaylistItems(items);
+      if (videoIds.length === 0) return [];
+      const json = await this.get("videos", { part: "snippet,statistics", id: videoIds.join(","), maxResults: String(RECENT_VIDEOS) });
+      return parseVideos(json);
+    } catch (err) {
+      if (err instanceof QuotaExhaustedError) throw err;
+      return [];
+    }
   }
 
   private async search(params: Record<string, string>): Promise<unknown> {
@@ -187,8 +202,8 @@ export function toProfile(channel: ChannelSummary, videos: VideoSummary[], fetch
     followers: channel.subscribers,
     engagementRate: engagementRate(videos, channel.subscribers),
     avgViews: averageViews(videos),
-    bio: redactEmails(channel.description).slice(0, 1_000),
-    recentTitles: videos.map((v) => redactEmails(v.title)).slice(0, RECENT_VIDEOS),
+    bio: redactContacts(channel.description).slice(0, 1_000),
+    recentTitles: videos.map((v) => redactContacts(v.title)).slice(0, RECENT_VIDEOS),
     crossLinks: extractCrossLinks(text, "youtube_api"),
     fetchedAt,
   };
