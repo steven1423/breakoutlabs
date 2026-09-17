@@ -307,3 +307,34 @@ Every non-obvious choice gets an entry: what, why, the alternative considered. N
 - What: one stacked area chart of ARR by source. `recharts` is the §3 chart library and this is its first use.
 - Why: this chart needs axes, a legend and a hover tooltip; the M4 sparklines did not. One library for all charts from here on.
 
+## M6 — Intelligence and brand
+
+### One read path, and the minimum applies to the cohort a number describes
+- What: `guardedAggregate(rows, query, minCohort)` is the only way a number reaches `/intelligence`, `/brand` or `/api/aggregates`. It filters to `consent_research`, groups by the requested dimensions, and suppresses any cell whose contributing rows number fewer than the minimum. For rates and marker deltas the contributing rows are the ones the measure is computed over (retested customers, customers with that marker), so a rate over 8 people is suppressed even inside a cell of 30.
+- Why: k-anonymity is a promise about the group a figure describes. Checking the raw cell size would let a rate over a handful of people leak through a large cell.
+- Alternative: suppress on the full cell count only. Rejected for the reason above.
+
+### The prevalence map reports the leading segment per state, checked at the state grain
+- What: the map cell is the state cohort (must reach the minimum), and its value is the share of the leading segment within it. The segment × state breakdown is not exported separately.
+- Why: at 217 consenting customers, a segment × state grain suppresses every tile even at a threshold of 10. The state cohort is the honest grain for a map; the share within it describes that cohort.
+
+### The demo threshold is 10; the code default stays 50
+- What: migration 0008 sets `settings.min_cohort` to 10 for this dataset. `loadMinCohort` falls back to `MIN_COHORT` then 50 when the row is absent. The guardrails widget says both numbers.
+- Why: CLAUDE.md sets 50 for production. The seed has 500 customers and about 217 consent, so at 50 nothing renders and nothing can disappear when the dial moves. At 10 the top states and the main segment × age cells show, the rest hatch, and raising to 20 on camera removes cells. Agreed in the M6 plan.
+
+### Marker deltas are sign-normalised toward optimal
+- What: `towardOptimal(before, after, low, high)`: a high marker falling is positive, a low marker rising is positive, an in-range marker moving toward the midpoint is positive. One hue per chart, sample size on every bar, suppressed markers listed under the chart rather than drawn.
+- Why: eight markers with different directions of "better" would need a legend per marker. One sign, one colour, and the founder reads it in a second.
+
+### The export endpoint has no row mode
+- What: `GET /api/aggregates` accepts `dims`, `measure`, `marker`, `intervention`, `segment`, `age_band`, `region_state` and `format`. Unknown dimensions and measures are 400s. `rows`, `limit`, `customer_id`, `select` and `format=rows` are ignored: the parser has no branch for them, and the tests assert the parsed query is identical with and without them.
+- Why: §9 says row-level export does not exist. The safest way to make that true is a parser that cannot express it.
+
+### Row objects never leave the server
+- What: `loadResearchRows` builds the per-customer rows the guard consumes; the page and the route call `openIntelligence().aggregate(...)` and only cells reach the client. The brand page passes guarded cells to its client component, never rows.
+- Why: a client component that received rows would put them in the HTML.
+
+### The brand simulation is pure, seeded, and honest about its control
+- What: `simulate(inputs, baseline)` draws the funnel with `seedrandom` on the inputs, so the same picks give the same numbers. The control improvement rate is the guarded `improved_rate` for the chosen segment × age band; when that cell is suppressed the all-segment rate stands in and the page says so. Lift per segment is a labelled estimate, not a fit.
+- Why: §10 asks for a deterministic simulation on the synthetic cohort with every number badged Seeded. Reading the control from the guard means the brand page cannot see anything the intelligence page could not.
+

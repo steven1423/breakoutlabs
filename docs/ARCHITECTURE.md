@@ -37,6 +37,10 @@ Postgres on Supabase. Four migrations under `supabase/migrations` (types and tab
 
 `lib/model/formulas.ts` is pure: `project(inputs)` returns one row per month (new customers, kit revenue, members, membership revenue, retested cumulative, brand revenue, ARR, valuation) from the §11 formulas plus three documented one-line additions. `lib/model/url.ts` serialises the inputs to the query string. `components/model-calculator.tsx` (client) holds the sliders, the counting outputs and the one recharts chart; `components/model-timeline.tsx` links each year's milestone to the page that unlocks it. No database.
 
+## Intelligence and brand (M6)
+
+`lib/intelligence/guard.ts` is the one read path: `guardedAggregate(rows, query, minCohort)`. `queries.ts` builds the per-customer rows on the server; `index.ts` (`openIntelligence`) loads once and aggregates many; `settings.ts` reads and writes `settings.min_cohort`; `csv.ts` serialises cells. `GET /api/aggregates` parses dimensions, measure and filters and returns JSON or CSV of guarded cells; it has no row mode. The `/intelligence` page renders the state grid, the marker-delta small multiples (recharts), the retention table, the coverage heatmap and the guardrails widget. `lib/brand/simulate.ts` is a pure seeded simulation; `/brand` feeds it guarded baselines only.
+
 ## Loop
 
 Test → Blueprint → Track → Retest → Data → Growth → Test. Ops owns the first four arcs, Intelligence owns Data, Growth owns the last.
