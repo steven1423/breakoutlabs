@@ -4,7 +4,10 @@ import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
 import { RunSweep } from "@/components/run-sweep";
 import { StateTrack } from "@/components/state-track";
-import { humanise, loadOpsOverview, type KitListRow, type OpsOverview } from "@/lib/ops/queries";
+import { Copilot } from "@/components/copilot";
+import { PendingActions } from "@/components/pending-actions";
+import { copilotLabel, isCopilotConfigured } from "@/lib/copilot/env";
+import { humanise, listPendingActions, loadOpsOverview, type KitListRow, type OpsOverview } from "@/lib/ops/queries";
 import { parsePersona, withPersona, type Persona } from "@/lib/personas";
 
 export const metadata: Metadata = { title: "Ops" };
@@ -17,9 +20,10 @@ type Props = { searchParams: Promise<Record<string, string | string[] | undefine
 export default async function OpsPage({ searchParams }: Props) {
   const persona = parsePersona((await searchParams).as);
   let overview: OpsOverview | null = null;
+  let actions: Awaited<ReturnType<typeof listPendingActions>> = [];
   let failure: string | null = null;
   try {
-    overview = await loadOpsOverview();
+    [overview, actions] = await Promise.all([loadOpsOverview(), listPendingActions()]);
   } catch (err) {
     failure = err instanceof Error ? err.message : "Unknown error";
   }
@@ -37,6 +41,18 @@ export default async function OpsPage({ searchParams }: Props) {
     <>
       <PageHeader title="Ops" caption={CAPTION} status="seeded" reason="Synthetic customers, live queries" />
       <StateTrack counts={overview.countsByState} />
+
+      <section className="mt-10">
+        <h2 className="text-24">Copilot</h2>
+        <p className="text-15 text-muted">Reads the database through typed tools and one guarded query. It never sends anything; it proposes.</p>
+        <Copilot configured={isCopilotConfigured()} label={copilotLabel()} />
+      </section>
+
+      <section className="mt-10">
+        <h2 className="text-24">Proposed actions</h2>
+        <p className="text-15 text-muted">Confirm records the decision in pending_actions. No email or SMS is sent by this system.</p>
+        <PendingActions actions={actions} />
+      </section>
 
       <section className="mt-10">
         <div className="flex flex-wrap items-end justify-between gap-4">

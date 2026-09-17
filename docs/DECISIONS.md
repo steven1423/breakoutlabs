@@ -151,3 +151,72 @@ Every non-obvious choice gets an entry: what, why, the alternative considered. N
 ### Node 22.18 or newer
 - What: `engines.node` is now `>=22.18`.
 - Why: the seed, migrate and sweep scripts run TypeScript through Node's built-in type stripping, which shipped unflagged in 22.18. CLAUDE.md says Node 20+; that predates the scripts.
+
+## M3 — Copilot
+
+### The model's SQL runs as `copilot` through two security-invoker functions, not a second connection string
+- What: `copilot_run_readonly_query` and `copilot_explain_query` are public functions executable only by `service_role`, which is granted membership in `copilot` and switches to it with `set local role` inside the function. Only masked views in schema `copilot` are readable; public tables are denied.
+- Why: the direct Postgres host is IPv6-only and unreachable from the sandbox, so `SUPABASE_COPILOT_DB_URL` could not be exercised. The function gives the same privilege boundary over HTTPS and was probed: views readable, base tables denied, 200-row cap, anon cannot execute.
+- Alternative: security definer functions. Rejected because Postgres forbids `SET ROLE` inside them (migration 0005 tried it, 0006 corrected it).
+
+### The 5-second timeout is enforced by the client, not the function
+- What: `set_config('statement_timeout')` inside a running statement does not re-arm the timer, so the RPC call carries an `AbortSignal.timeout(5000)`, the guard rejects `pg_sleep`, and `alter role copilot set statement_timeout` covers any direct connection.
+- Why: measured: a `pg_sleep(10)` through the function completed. The client abort is the guarantee the app can actually give.
+
+### Guard first, then EXPLAIN, then run
+- What: `guardSql` is a pure whitelist (one `select` or `with`, no semicolons, comments, locks, `into`, writes, settings, sleep or file functions). A passing query is planned with `explain` as the copilot role before it runs.
+- Why: the guard stops obvious misuse in-process; the explain catches bad SQL and privilege errors without executing; the role is the real boundary.
+
+### Typed tools use the service client; only raw SQL uses the copilot role
+- What: nine tools run fixed queries we wrote, selecting masked columns and truncating ticket bodies to 500 characters. `run_readonly_query` is the only path where model-written SQL reaches Postgres, and it runs as `copilot`.
+- Why: CLAUDE.md §7 says the model never gets raw SQL except through that one tool. Fixed queries need the joins and settings the views do not expose.
+
+### Manual streaming loop, not the SDK tool runner
+- What: `runCopilot` streams each turn through a `ModelProvider`, executes the tool calls it returns, appends the results, stops at end_turn or after 8 calls, then makes one last turn with tools disabled so the model still answers.
+- Why: the transparency panel needs per-call timing and row counts, the cap needs a graceful last turn, and the route needs a custom SSE transport. The tool runner is beta and hides those seams.
+
+### Last login is derived, not stored
+- What: "days since last login" is the latest customer-actor kit event or check-in.
+- Why: §5 has no login table, and adding a column would change the schema for one question.
+
+### Effort defaults to medium
+- What: `output_config.effort` comes from `CLAUDE_EFFORT`, validated against low, medium, high, xhigh, max; anything else falls back to medium. Sonnet 5 runs adaptive thinking, so no thinking parameter is sent.
+- Why: the copilot answers factual questions through tools where latency matters more than depth. Raise it per deployment if answers feel thin.
+
+### Ticket summaries are JSON in text, validated by zod, retried once
+- What: the summariser asks for one JSON object, parses the first `{...}`, validates against `aiSummarySchema`, and re-asks once with the validation error before giving up.
+- Why: one plain request is easier to explain than structured-output configuration, and the schema check is what makes the cache trustworthy.
+
+### Confirm is the whole action
+- What: Confirm and Reject set `pending_actions.status` and `decided_at`. No send exists.
+- Why: Klaviyo, SendGrid and Twilio are on the cut list; the table is the audit trail a later integration would consume.
+
+### Gemini is the demo provider; Anthropic stays the default
+- What: `MODEL_PROVIDER=gemini` routes the copilot and the ticket summariser through Gemini (`GEMINI_API_KEY`, `GEMINI_MODEL`, default `gemini-2.5-flash`). Unset or `anthropic` keeps the CLAUDE.md path (`ANTHROPIC_API_KEY`, `CLAUDE_MODEL`). The badge reason names the vendor and model that answered.
+- Why: the Anthropic account had no credits when the M3 evals were due, and the demo is a video, not a code review. Gemini's free tier ran all 15 evals. Steven chose this; it is an environment switch, not a code fork.
+- Alternative: wait for Anthropic credits. Rejected because the M3 definition of done needs the evals to pass now and nothing in the product depends on which vendor answers.
+
+### One `ModelProvider` interface, two adapters
+- What: `lib/copilot/provider.ts` defines a neutral turn (`streamTurn`) and a one-shot `complete`. `providers/anthropic.ts` and `providers/gemini.ts` translate the neutral history to each vendor's shape and back; the loop, tools, guard and evals never see vendor types. Each adapter keeps the raw assistant parts so a replayed turn is byte-identical (Anthropic content blocks, Gemini parts with thought signatures).
+- Why: the loop is the part a CTO reads; it should not change when the vendor does. Retries on 429/503/529 live in the loop once.
+- Alternative: a `switch` inside the loop. Rejected because every vendor difference (tool_choice vs omitting tools, tool_result vs functionResponse) would leak into the part that is supposed to be simple.
+
+### `@google/genai` is the one dependency beyond §3
+- What: the official Google SDK, pinned exactly. It is only imported by the Gemini adapter and `createProvider()`.
+- Why: the demo override needs it; hand-rolling the streaming and function-calling wire format would be more code to explain than the SDK.
+
+### Effort maps to a Gemini thinking budget
+- What: `CLAUDE_EFFORT` low, medium, high, xhigh, max become `thinkingBudget` 0, 1024, 4096, -1, -1 (dynamic) on Gemini. Anthropic keeps `output_config.effort`.
+- Why: one env var controls depth on both vendors, so the docs and the demo setup do not fork.
+
+### Gemini runs at temperature 0
+- What: both Gemini calls set `temperature: 0`. Anthropic is left at its default.
+- Why: at the default temperature Gemini picked a different tool for the same question on repeated runs (get_metric instead of run_readonly_query for "run a query"). The copilot is a data tool; reproducible tool choice matters more than varied prose. Evals passed 15/15 on two consecutive runs after the change.
+
+### An empty model turn is retried, not shown
+- What: when Gemini returns neither text nor a function call (its `MALFORMED_FUNCTION_CALL` finish, or a dropped part), the adapter throws a retryable `EmptyTurnError` and the loop re-samples the turn on the same 2 s, 4 s, 8 s schedule as rate limits.
+- Why: it happened once in the eval runs and produced a blank answer. Re-sampling is the documented remedy and costs one call.
+
+### The model is told the view schema and its call budget
+- What: the `run_readonly_query` description lists every masked view and its columns; the system prompt says explicitly that "run a query" or "SQL" means that tool, that "send", "text" or "nudge" means look up the recipients and call `propose_action` once per customer, and that there are at most 8 tool calls per question. `get_kit_timeline` now returns the kit's tickets so a kit code leads to a ticket id in one typed call.
+- Why: eval failures traced to missing facts, not model quality: six SQL attempts guessing column names, a refusal to nudge because the old rule said "decline any send", and a search for a ticket id that no typed tool exposed. Giving the model the facts fixed each case; loosening the evals would have hidden them.

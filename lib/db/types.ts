@@ -764,6 +764,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      copilot_explain_query: { Args: { query: string }; Returns: Json }
+      copilot_run_readonly_query: { Args: { query: string }; Returns: Json }
       reset_synthetic_data: { Args: never; Returns: undefined }
     }
     Enums: {

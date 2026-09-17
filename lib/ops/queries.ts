@@ -98,3 +98,34 @@ export function humanise(value: string): string {
   const spaced = value.replace(/_/g, " ");
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }
+
+/** Newest proposals first, for the /ops queue. */
+export async function listPendingActions(limit = 30) {
+  const db = createServiceSupabase();
+  const { data, error } = await db
+    .from("pending_actions")
+    .select("id, type, status, proposed_by, created_at, payload, customer:customers(first_name)")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export type TicketDetail = {
+  ticket: Pick<Tables["tickets"]["Row"], "id" | "subject" | "body" | "status" | "channel" | "opened_at" | "likely_cause" | "ai_summary">;
+  customer: Pick<Tables["customers"]["Row"], "id" | "first_name" | "email_masked" | "plan"> | null;
+  kit: Pick<Tables["kits"]["Row"], "kit_code" | "state" | "state_entered_at"> | null;
+};
+
+export async function loadTicketDetail(id: string): Promise<TicketDetail | null> {
+  const db = createServiceSupabase();
+  const { data, error } = await db
+    .from("tickets")
+    .select("id, subject, body, status, channel, opened_at, likely_cause, ai_summary, customer:customers(id, first_name, email_masked, plan), kit:kits(kit_code, state, state_entered_at)")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) return null;
+  const { customer, kit, ...ticket } = data;
+  return { ticket, customer, kit };
+}
