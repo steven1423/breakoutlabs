@@ -63,7 +63,7 @@ Now the leaderboard. Ranked by followers, **tayglowsup** is first: 430,000 follo
 
 Say: the same fourteen orders look small until you price them by the thing that compounds. This is the metric the business runs on and nobody else in acne can compute it.
 
-Open hannah.hormonehealth's creator page for the AI card: fit 95, androgen, a price band labelled estimate, and an outreach draft under 120 words.
+Open hannah.hormonehealth's creator page for the AI card: fit 98 on the current cards (it moves a few points each time they are regenerated), androgen, a price band labelled estimate, and an outreach draft under 120 words.
 
 Then `/growth/allocator`. The latest run puts $846.58 on hannah and the $500 floor on tayglowsup out of $10,000 across 15 campaigns. Each campaign shows its Beta posterior as a density curve with the sampled draw marked.
 
