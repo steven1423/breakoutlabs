@@ -1,8 +1,8 @@
-import { loadLeaderboard, type LeaderboardRow } from "@/lib/attribution/queries";
-import { extractCrossLinks } from "@/lib/creators/crosslinks";
-import type { CreatorStub } from "@/lib/creators/types";
-import { createServiceSupabase } from "@/lib/db/service";
-import type { Database } from "@/lib/db/types";
+import { loadLeaderboard, type LeaderboardRow } from "../attribution/queries.ts";
+import { extractCrossLinks } from "../creators/crosslinks.ts";
+import type { CreatorStub } from "../creators/types.ts";
+import { createServiceSupabase } from "../db/service.ts";
+import type { Database } from "../db/types.ts";
 
 type Tables = Database["public"]["Tables"];
 export type CreatorRow = Tables["creators"]["Row"];

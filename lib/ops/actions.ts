@@ -1,11 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { sweepStuckKits, applyTransition, type SweepResult } from "@/lib/state-machine/db";
-import { canTransition, type KitState } from "@/lib/state-machine/transitions";
-import { createServiceSupabase } from "@/lib/db/service";
-import { createCopilot } from "@/lib/copilot";
-import { STAFF_FIXES } from "@/lib/ops/fixes";
+import { sweepStuckKits, applyTransition, type SweepResult } from "../state-machine/db.ts";
+import { canTransition, type KitState } from "../state-machine/transitions.ts";
+import { createServiceSupabase } from "../db/service.ts";
+import { createCopilot } from "../copilot/index.ts";
+import { STAFF_FIXES } from "../ops/fixes.ts";
 
 export type SweepState = { result: SweepResult | null; error: string | null };
 
