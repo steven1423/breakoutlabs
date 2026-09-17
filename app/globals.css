@@ -30,9 +30,9 @@
     --muted: #4f6675;
     /* Darker ink versions of the same hues so text on white stays readable. */
     --accent: #9e2f3c;
-    --live: #2a7f77;
+    --live: #25736c;
     --seeded: #8f6410;
-    --optimal: #2a7f77;
+    --optimal: #25736c;
     --high: #9e2f3c;
     --low: #8f6410;
     --chart-membership: #ac7d1b;
@@ -56,6 +56,8 @@
   --color-optimal: var(--optimal);
   --color-high: var(--high);
   --color-low: var(--low);
+  /* The palette reset above removes Tailwind's white; buttons on the accent need it back. */
+  --color-white: #ffffff;
 
   --font-sans: var(--font-plex), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-fraunces), Georgia, serif;
@@ -94,6 +96,12 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Links get a 24px tap target (WCAG 2.5.8) without changing how they read inline. */
+a {
+  display: inline-block;
+  min-height: 24px;
+}
+
 :focus-visible {
   outline: 2px solid var(--live);
   outline-offset: 2px;
@@ -113,5 +121,71 @@ body {
 /* Suppressed cells (M6): hatched, never blank, so "insufficient data" reads as a rule rather than a gap. */
 .hatched {
   background: repeating-linear-gradient(135deg, var(--surface) 0 6px, var(--line) 6px 8px);
+}
+
+/* The landing loop (M7): arcs draw in sequence, then the thesis lines, then the button. One moment, once. */
+.loop-animate .loop-arc {
+  animation: loop-draw 0.55s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation-delay: calc(var(--i) * 0.45s + 0.2s);
+}
+.loop-animate .loop-label {
+  opacity: 0;
+  animation: fade-in 0.4s ease-out forwards;
+  animation-delay: calc(var(--i) * 0.45s + 0.55s);
+}
+.loop-animate .loop-spot {
+  opacity: 0;
+  animation: fade-in 0.4s ease-out forwards;
+  animation-delay: 3.1s;
+}
+.thesis-line {
+  opacity: 0;
+  animation: rise-in 0.6s ease-out forwards;
+  animation-delay: calc(3.3s + var(--i) * 0.5s);
+}
+.thesis-enter {
+  opacity: 0;
+  animation: rise-in 0.5s ease-out forwards;
+  animation-delay: 5s;
+}
+@keyframes loop-draw {
+  to { stroke-dashoffset: 0; }
+}
+@keyframes fade-in {
+  to { opacity: 1; }
+}
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* The kit rail on /ops (M7): marks slide into their state once per page load. */
+.rail-mark {
+  animation: rail-in 0.4s ease-out both;
+  animation-delay: calc(var(--i) * 12ms);
+}
+@keyframes rail-in {
+  from { opacity: 0; transform: translateX(-6px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loop-animate .loop-arc { stroke-dashoffset: 0 !important; animation: none; }
+  .loop-animate .loop-label, .loop-animate .loop-spot, .thesis-line, .thesis-enter, .rail-mark { opacity: 1; animation: none; transform: none; }
+}
+
+/* Skip link: visible only when focused. */
+.skip-link {
+  position: absolute;
+  left: 1rem;
+  top: -3rem;
+  z-index: 10;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  background: var(--accent);
+  color: #fff;
+}
+.skip-link:focus {
+  top: 1rem;
 }
 

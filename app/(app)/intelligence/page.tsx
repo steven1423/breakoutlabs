@@ -117,8 +117,8 @@ function RetentionTable({ cells }: { cells: Cell[] }) {
       <table className="w-full text-15">
         <thead className="bg-surface text-left text-13 text-muted">
           <tr>
-            <th className="px-3 py-2 font-medium">Channel</th>
-            {PLANS.map((p) => <th key={p} className="px-3 py-2 text-right font-medium">{p.replace("_", " ")}</th>)}
+            <th scope="col" className="px-3 py-2 font-medium">Channel</th>
+            {PLANS.map((p) => <th key={p} scope="col" className="px-3 py-2 text-right font-medium">{p.replace("_", " ")}</th>)}
           </tr>
         </thead>
         <tbody>
@@ -127,7 +127,7 @@ function RetentionTable({ cells }: { cells: Cell[] }) {
               <td className="px-3 py-2">{ch}</td>
               {PLANS.map((p) => {
                 const cell = byKey.get(`${ch}|${p}`);
-                if (!cell) return <td key={p} className="px-3 py-2 text-right text-muted opacity-50">–</td>;
+                if (!cell) return <td key={p} className="px-3 py-2 text-right text-muted">–</td>;
                 if (cell.suppressed) return <td key={p} className="hatched px-3 py-2 text-right text-muted" title="Below the minimum cohort">n/a</td>;
                 return <td key={p} className="px-3 py-2 text-right">{Math.round((cell.value ?? 0) * 100)}% <span className="text-13 text-muted">n {cell.count}</span></td>;
               })}

@@ -153,7 +153,7 @@ function Output({ label, value, format, accent }: { label: string; value: number
 }
 
 function Th({ children, right }: { children: React.ReactNode; right?: boolean }) {
-  return <th className={`px-2 py-1 font-medium ${right ? "text-right" : ""}`}>{children}</th>;
+  return <th scope="col" className={`px-2 py-1 font-medium ${right ? "text-right" : ""}`}>{children}</th>;
 }
 
 const pct0 = (v: number) => `${Math.round(v * 100)}%`;
