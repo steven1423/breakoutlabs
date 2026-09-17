@@ -65,8 +65,12 @@ function check(c: Case, answer: string, calls: ToolCallRecord[]): string[] {
   }
   if (c.not_regex && new RegExp(c.not_regex, "i").test(answer)) failures.push(`answer matched forbidden /${c.not_regex}/i`);
   if (c.answer_count_matches_rows) {
-    const call = calls.find((k) => k.name === c.answer_count_matches_rows);
+    // Ground truth is the last call of that tool that returned rows: a call that errored has none, and
+    // the copilot is expected to retry it, so the answer is built from the retry.
+    const call = calls.filter((k) => k.name === c.answer_count_matches_rows && !k.error).at(-1);
+    const attempted = calls.some((k) => k.name === c.answer_count_matches_rows);
     const table = extractTable(answer);
+    if (attempted && !call) failures.push(`every ${c.answer_count_matches_rows} call errored, so the answer has no ground truth`);
     if (call && table && table.length !== Math.min(call.rowCount ?? 0, 200)) failures.push(`answer table has ${table.length} rows, tool returned ${call.rowCount}`);
     if (call && !table && (call.rowCount ?? 0) > 0 && !answer.includes(String(call.rowCount))) failures.push(`answer states neither a table nor the count ${call.rowCount}`);
   }
