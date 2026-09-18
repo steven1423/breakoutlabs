@@ -6,5 +6,10 @@ next-env.d.ts
 .env
 .env.*
 !.env.example
+
+# Large model assets the skin scan loads in the browser; `pnpm models` puts them here.
+public/ort/
+public/models/acne/*.onnx
+vendor/
 .DS_Store
 supabase/.temp/

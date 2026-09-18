@@ -1,0 +1,10 @@
+{
+  "model": "acne-detector-int8.onnx",
+  "arch": "yolov8s",
+  "inputSize": 640,
+  "confThreshold": 0.16,
+  "iouThreshold": 0.45,
+  "classNames": ["lesion"],
+  "trained": "2026-09-17",
+  "note": "SkinLoop lesion detector, int8. Held-out mAP50 0.33; on face photos 0.23 to 0.29. A proxy, not a diagnosis."
+}

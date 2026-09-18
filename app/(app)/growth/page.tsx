@@ -14,6 +14,8 @@ import { loadLeaderboard, type LeaderboardRow } from "@/lib/attribution/queries"
 import { isConfigured } from "@/lib/env";
 import { formatCount, formatUsd, loadCreators, type CreatorListRow } from "@/lib/growth/queries";
 import { parsePersona, withPersona, type Persona } from "@/lib/personas";
+import { latestCreatorScans, type SavedScan } from "@/lib/scan/db";
+import { BAND_LABEL } from "@/lib/scan/summarize";
 import { pageOf, parsePage, withParams } from "@/lib/ui/paging";
 
 export const metadata: Metadata = { title: "Creators" };
@@ -35,9 +37,10 @@ export default async function GrowthPage({ searchParams }: Props) {
 
   let creators: CreatorListRow[] = [];
   let leaderboard: LeaderboardRow[] = [];
+  let scans = new Map<string, SavedScan>();
   let failure: string | null = null;
   try {
-    [creators, leaderboard] = await Promise.all([loadCreators(), loadLeaderboard()]);
+    [creators, leaderboard, scans] = await Promise.all([loadCreators(), loadLeaderboard(), latestCreatorScans().catch(() => new Map<string, SavedScan>())]);
   } catch (err) {
     failure = err instanceof Error ? err.message : "Unknown error";
   }
@@ -138,7 +141,7 @@ export default async function GrowthPage({ searchParams }: Props) {
               <span>Stage: discovered by an adapter, scored by the AI card, partnered with a campaign code.</span>
             </div>
             <div className="mt-4 overflow-hidden rounded-panel border border-line">
-              <CreatorTable rows={creatorPage.rows} partnered={partnered} persona={persona} />
+              <CreatorTable rows={creatorPage.rows} partnered={partnered} scans={scans} persona={persona} />
               <Pager page={creatorPage} params={params} pathname="/growth" noun="creators" />
             </div>
           </>
@@ -148,7 +151,7 @@ export default async function GrowthPage({ searchParams }: Props) {
   );
 }
 
-function CreatorTable({ rows, partnered, persona }: { rows: CreatorListRow[]; partnered: Set<string>; persona: Persona }) {
+function CreatorTable({ rows, partnered, scans, persona }: { rows: CreatorListRow[]; partnered: Set<string>; scans: Map<string, SavedScan>; persona: Persona }) {
   if (rows.length === 0) return <p className="px-4 py-6 text-15 text-muted">No creators yet. Press Discover on YouTube, or run pnpm seed for the seeded set.</p>;
   return (
     <div className="overflow-auto">
@@ -162,6 +165,7 @@ function CreatorTable({ rows, partnered, persona }: { rows: CreatorListRow[]; pa
             <Th right>Engagement</Th>
             <Th right>Avg views</Th>
             <Th right>Fit</Th>
+            <Th>Skin scan</Th>
             <Th>Found by</Th>
             <Th>Data</Th>
           </tr>
@@ -179,6 +183,16 @@ function CreatorTable({ rows, partnered, persona }: { rows: CreatorListRow[]; pa
               <td className="px-4 py-2 text-right">{c.engagement_rate === null ? "–" : `${(c.engagement_rate * 100).toFixed(1)}%`}</td>
               <td className="px-4 py-2 text-right">{formatCount(c.avg_views)}</td>
               <td className="whitespace-nowrap px-4 py-2 text-right">{c.fitScore === null ? "–" : `${c.fitScore} / 100`}</td>
+              <td className="whitespace-nowrap px-4 py-2">
+                {scans.get(c.id) ? (
+                  <Link href={withPersona(`/growth/creators/${c.id}#scan`, persona)} className="underline decoration-line underline-offset-4 hover:decoration-text" title="Done by the creator on their own device, with consent">
+                    {BAND_LABEL[scans.get(c.id)!.summary.band]}, {scans.get(c.id)!.summary.lesionsPerFrame} per frame
+                    <span className="ml-1 text-13 text-muted">{scans.get(c.id)!.takenAt.slice(0, 10)}</span>
+                  </Link>
+                ) : (
+                  <span className="text-13 text-muted" title="A scan exists only when the creator runs one on their own device">Not scanned</span>
+                )}
+              </td>
               <td className="whitespace-nowrap px-4 py-2 text-muted">{SOURCE_LABEL[c.source] ?? c.source}</td>
               <td className="px-4 py-2"><DataBadge status={c.data_status} reason={c.enrich_error ?? undefined} /></td>
             </tr>

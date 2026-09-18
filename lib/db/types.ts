@@ -726,6 +726,60 @@ export type Database = {
         }
         Relationships: []
       }
+      skin_scans: {
+        Row: {
+          band: Database["public"]["Enums"]["severity_band"]
+          consented_at: string
+          frame_count: number
+          frames: Json
+          id: string
+          lesions_max: number
+          lesions_per_frame: number
+          low_resolution: boolean
+          mean_score: number | null
+          model: string
+          per_zone: Json
+          spoof_flag: boolean
+          subject_id: string
+          subject_type: Database["public"]["Enums"]["scan_subject"]
+          taken_at: string
+        }
+        Insert: {
+          band: Database["public"]["Enums"]["severity_band"]
+          consented_at: string
+          frame_count: number
+          frames: Json
+          id?: string
+          lesions_max: number
+          lesions_per_frame: number
+          low_resolution?: boolean
+          mean_score?: number | null
+          model: string
+          per_zone: Json
+          spoof_flag?: boolean
+          subject_id: string
+          subject_type: Database["public"]["Enums"]["scan_subject"]
+          taken_at?: string
+        }
+        Update: {
+          band?: Database["public"]["Enums"]["severity_band"]
+          consented_at?: string
+          frame_count?: number
+          frames?: Json
+          id?: string
+          lesions_max?: number
+          lesions_per_frame?: number
+          low_resolution?: boolean
+          mean_score?: number | null
+          model?: string
+          per_zone?: Json
+          spoof_flag?: boolean
+          subject_id?: string
+          subject_type?: Database["public"]["Enums"]["scan_subject"]
+          taken_at?: string
+        }
+        Relationships: []
+      }
       tickets: {
         Row: {
           ai_summary: Json | null
@@ -843,6 +897,7 @@ export type Database = {
       membership_status: "none" | "active" | "cancelled"
       plan_type: "standalone" | "membership_first" | "study"
       platform: "youtube" | "instagram" | "tiktok"
+      scan_subject: "creator" | "customer"
       segment:
         | "androgen"
         | "insulin"
@@ -850,6 +905,7 @@ export type Database = {
         | "nutrient"
         | "inflammation"
         | "mixed"
+      severity_band: "clear" | "mild" | "moderate" | "marked"
       sex_type: "female" | "male" | "other"
       ticket_status: "open" | "pending_customer" | "resolved"
     }
@@ -1036,6 +1092,7 @@ export const Constants = {
       membership_status: ["none", "active", "cancelled"],
       plan_type: ["standalone", "membership_first", "study"],
       platform: ["youtube", "instagram", "tiktok"],
+      scan_subject: ["creator", "customer"],
       segment: [
         "androgen",
         "insulin",
@@ -1044,6 +1101,7 @@ export const Constants = {
         "inflammation",
         "mixed",
       ],
+      severity_band: ["clear", "mild", "moderate", "marked"],
       sex_type: ["female", "male", "other"],
       ticket_status: ["open", "pending_customer", "resolved"],
     },
