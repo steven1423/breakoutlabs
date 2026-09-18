@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { CopilotLauncher } from "@/components/copilot-launcher";
 import { EmptyState } from "@/components/empty-state";
 import { KpiRow } from "@/components/kpi";
 import { PageHeader } from "@/components/page-header";
@@ -21,6 +22,7 @@ import {
   type OpsOverview,
   type PendingActionRow,
 } from "@/lib/ops/queries";
+import { copilotLabel, isCopilotConfigured } from "@/lib/copilot/env";
 import { parsePersona, withPersona, type Persona } from "@/lib/personas";
 import { PAGE_SIZE, pageOf, parsePage, withParams, type Page } from "@/lib/ui/paging";
 
@@ -86,6 +88,14 @@ export default async function OpsPage({ searchParams }: Props) {
   return (
     <>
       <PageHeader title="Kits and tickets" caption={CAPTION} status="seeded" reason="Synthetic customers, live queries" />
+      <WhyThisPage
+        job="Catch every kit that has stopped moving before the customer writes the review."
+        steps={[
+          { title: "Read the four phases", body: "Fulfilment, lab, results, retest loop. A garnet share is a kit past its SLA; boxed rows are the exception states." },
+          { title: "Run the sweep", body: "It classifies every stuck kit, opens one ticket per kit and proposes a nudge. Running it twice changes nothing." },
+          { title: "Work the queue", body: "Open the kit, fix the state, confirm or reject each nudge. Nothing is sent by this system; a confirmation is a record." },
+        ]}
+      />
 
       <KpiRow
         items={[
@@ -98,16 +108,9 @@ export default async function OpsPage({ searchParams }: Props) {
         ]}
       />
 
-      <WhyThisPage
-        job="Catch every kit that has stopped moving before the customer writes the review."
-        steps={[
-          { title: "Read the track", body: "Eleven steps from order to retest. A garnet share is a kit past its SLA; indented rows are the exception states." },
-          { title: "Run the sweep", body: "It classifies every stuck kit, opens one ticket per kit and proposes a nudge. Running it twice changes nothing." },
-          { title: "Work the queue", body: "Open the kit, fix the state, confirm or reject each nudge. Nothing is sent by this system; a confirmation is a record." },
-        ]}
-      />
-
       <Pipeline counts={overview.countsByState} stuck={stuckByState} sla={overview.sla} />
+
+      <CopilotLauncher configured={isCopilotConfigured()} label={copilotLabel()} />
 
       <section className="mt-8">
         <div className="flex flex-wrap items-center justify-between gap-4">

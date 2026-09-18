@@ -78,6 +78,15 @@ export default async function IntelligencePage({ searchParams }: Props) {
     <>
       <PageHeader title="Customer insights" caption={CAPTION} status="seeded" reason="Synthetic customers, real guard: every number passed the minimum-cohort check" />
 
+      <WhyThisPage
+        job="Where the root causes are, which interventions move which markers, and where the data is too thin to say, with no customer row ever leaving the database."
+        steps={[
+          { title: "One read path", body: "Every number here goes through the same guard: consent filter, group, then suppress any cell under the minimum cohort." },
+          { title: "Suppression is visible", body: "Hatched means below the minimum, never zero. Raise the threshold and watch cells disappear; that is the product working." },
+          { title: "Aggregates leave, rows never do", body: "Every dataset exports as CSV of guarded cells. There is no row export, not disabled: absent." },
+        ]}
+      />
+
       <KpiRow
         items={[
           { label: "Consenting customers", value: String(intel.consented), detail: `${Math.round((intel.consented / Math.max(1, intel.total)) * 100)}% of ${intel.total}. Only they count on this page.` },
@@ -86,15 +95,6 @@ export default async function IntelligencePage({ searchParams }: Props) {
           { label: "States with data", value: String(map.cells.length - suppressedStates), detail: `${suppressedStates} suppressed, ${51 - map.cells.length} with no consenting customers` },
           { label: "Cells suppressed", value: `${suppressedTotal} of ${cellsTotal}`, detail: "Across the six datasets on this page", tone: "seeded" },
           { label: "Minimum cohort", value: String(intel.minCohort), detail: `Editable below. Queries may combine at most ${MAX_SPECIFICITY} dimensions and filters.` },
-        ]}
-      />
-
-      <WhyThisPage
-        job="Tell the founder where the root causes are, which interventions move which markers, and where the dataset is too thin to say anything, without a single customer row ever leaving the database."
-        steps={[
-          { title: "One read path", body: "Every number here goes through the same guard: consent filter, group, then suppress any cell under the minimum cohort." },
-          { title: "Suppression is visible", body: "Hatched means below the minimum, never zero. Raise the threshold and watch cells disappear; that is the product working." },
-          { title: "Aggregates leave, rows never do", body: "Every dataset exports as CSV of guarded cells. There is no row export, not disabled: absent." },
         ]}
       />
 
