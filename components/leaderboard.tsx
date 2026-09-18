@@ -12,7 +12,10 @@ type RankKey = "followers" | "cost_per_retest";
  * The one toggle on the page (CLAUDE.md §8.7): rank by followers or by cost-per-retest.
  * The reorder is a FLIP transition on the rows; reduced motion skips it.
  */
-export function Leaderboard({ rows, persona }: { rows: LeaderboardRow[]; persona: string }) {
+/** The newest scan per creator, already reduced to what the column shows. */
+export type ScanCell = { band: string; perFrame: number; takenAt: string };
+
+export function Leaderboard({ rows, persona, scans = {} }: { rows: LeaderboardRow[]; persona: string; scans?: Record<string, ScanCell> }) {
   const [key, setKey] = useState<RankKey>("followers");
   const ranked = rankBy(rows, key);
   const rowRefs = useRef(new Map<string, HTMLTableRowElement>());
@@ -52,6 +55,7 @@ export function Leaderboard({ rows, persona }: { rows: LeaderboardRow[]; persona
               <Th right>Cost per retest</Th>
               <Th right>CAC</Th>
               <Th right>LTV 90d</Th>
+              <Th>Skin scan</Th>
             </tr>
           </thead>
           <tbody>
@@ -76,6 +80,16 @@ export function Leaderboard({ rows, persona }: { rows: LeaderboardRow[]; persona
                 <td className={`px-4 py-2 text-right ${key === "cost_per_retest" ? "text-live" : ""}`}>{formatUsd(row.metrics.costPerRetest)}</td>
                 <td className="px-4 py-2 text-right">{formatUsd(row.metrics.cac)}</td>
                 <td className="px-4 py-2 text-right">{formatUsd(row.metrics.ltv90d)}</td>
+                <td className="px-4 py-2">
+                  {scans[row.creator.id] ? (
+                    <Link href={`/growth/creators/${row.creator.id}?as=${persona}#scan`} className="underline decoration-line underline-offset-4 hover:decoration-text" title="Done by the creator on their own device, with consent">
+                      {scans[row.creator.id].band}, {scans[row.creator.id].perFrame} per frame
+                      <span className="ml-1 text-13 text-muted">{scans[row.creator.id].takenAt.slice(0, 10)}</span>
+                    </Link>
+                  ) : (
+                    <span className="whitespace-nowrap text-13 text-muted" title="A scan exists only when the creator runs one on their own device">Not scanned</span>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>

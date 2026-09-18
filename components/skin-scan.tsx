@@ -32,6 +32,8 @@ const FACE_BASE = "/models/face/";
 const ACNE_BASE = "/models/acne/";
 const CROP_MARGIN = 1.3;
 const DETECTOR_SIDE = 640;
+/** Hold a pose this long and the frame is taken by itself: nobody can click a button while looking away from the screen. */
+const HOLD_MS = 1500;
 
 const ANGLE_LABEL: Record<Angle, string> = { front: "Facing the camera", left: "Turned to your left", right: "Turned to your right" };
 
@@ -42,7 +44,7 @@ export function SkinScan({ subjectType, subjectId, subjectName }: Props) {
   const [consentedAt, setConsentedAt] = useState<string | null>(null);
   const [status, setStatus] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
-  const [pose, setPose] = useState<{ yaw: number; pitch: number; angle: Angle | null; found: boolean }>({ yaw: 0, pitch: 0, angle: null, found: false });
+  const [pose, setPose] = useState<{ yaw: number; pitch: number; angle: Angle | null; found: boolean; heldMs: number }>({ yaw: 0, pitch: 0, angle: null, found: false, heldMs: 0 });
   const [captures, setCaptures] = useState<Capture[]>([]);
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState<{ id: string } | null>(null);
@@ -53,6 +55,10 @@ export function SkinScan({ subjectType, subjectId, subjectName }: Props) {
   const streamRef = useRef<MediaStream | null>(null);
   const loopRef = useRef<number | null>(null);
   const lastFaceRef = useRef<HumanFace | null>(null);
+  /** The pose loop reads these instead of state so it never captures on a stale closure. */
+  const holdRef = useRef<{ angle: Angle | null; since: number; fired: boolean }>({ angle: null, since: 0, fired: false });
+  const busyRef = useRef(false);
+  const capturedRef = useRef(new Set<Angle>());
 
   const stopCamera = useCallback(() => {
     if (loopRef.current) cancelAnimationFrame(loopRef.current);
@@ -62,6 +68,35 @@ export function SkinScan({ subjectType, subjectId, subjectName }: Props) {
   }, []);
 
   useEffect(() => stopCamera, [stopCamera]);
+
+  useEffect(() => {
+    busyRef.current = busy;
+  }, [busy]);
+  useEffect(() => {
+    capturedRef.current = new Set(captures.map((c) => c.result.angle));
+  }, [captures]);
+
+  // Space takes the lit angle by hand, for anyone who would rather not wait for the hold.
+  useEffect(() => {
+    if (phase !== "ready") return;
+    function onKey(e: KeyboardEvent) {
+      if (e.code !== "Space" || e.repeat) return;
+      const angle = holdRef.current.angle;
+      if (!angle || busyRef.current) return;
+      e.preventDefault();
+      void capture(angle);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
+
+  // Three angles in: the camera has done its job, so the results take over without another click.
+  useEffect(() => {
+    if (phase !== "ready" || busy) return;
+    if (ANGLES.every((a) => capturedRef.current.has(a))) finish();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [captures, busy, phase]);
 
   async function loadModels() {
     setPhase("loading");
@@ -136,9 +171,20 @@ export function SkinScan({ subjectType, subjectId, subjectName }: Props) {
       if (face?.rotation?.angle) {
         const yaw = deg(face.rotation.angle.yaw);
         const pitch = deg(face.rotation.angle.pitch);
-        setPose({ yaw, pitch, angle: angleFor(yaw, pitch), found: true });
+        const angle = angleFor(yaw, pitch);
+        const now = performance.now();
+        if (angle !== holdRef.current.angle) holdRef.current = { angle, since: now, fired: false };
+        const hold = holdRef.current;
+        const wanted = angle !== null && !capturedRef.current.has(angle);
+        const heldMs = wanted ? now - hold.since : 0;
+        setPose({ yaw, pitch, angle, found: true, heldMs });
+        if (wanted && !hold.fired && !busyRef.current && heldMs >= HOLD_MS) {
+          hold.fired = true;
+          void capture(angle!);
+        }
       } else {
-        setPose({ yaw: 0, pitch: 0, angle: null, found: false });
+        holdRef.current = { angle: null, since: 0, fired: false };
+        setPose({ yaw: 0, pitch: 0, angle: null, found: false, heldMs: 0 });
       }
     } catch {
       // A dropped frame is not an error worth surfacing.
@@ -327,24 +373,32 @@ export function SkinScan({ subjectType, subjectId, subjectName }: Props) {
         </div>
         <div className="flex flex-col gap-3">
           <p className="text-15">Capture three angles</p>
-          {ANGLES.map((a) => (
-            <button
-              key={a}
-              type="button"
-              disabled={busy || pose.angle !== a}
-              onClick={() => void capture(a)}
-              className={`flex items-center justify-between rounded-control border px-4 py-2 text-left text-15 disabled:opacity-50 ${captured.has(a) ? "border-live" : pose.angle === a ? "border-brand bg-brand/10" : "border-line"}`}
-            >
-              <span>{ANGLE_LABEL[a]}</span>
-              <span className="text-13 text-muted">{captured.has(a) ? "captured, press again to retake" : pose.angle === a ? "ready" : "turn your head"}</span>
-            </button>
-          ))}
+          <p className="text-13 text-muted">Turn your head until a row lights up, then hold still for a moment: the frame is taken by itself. Space takes it at once. All three in and the results open.</p>
+          {ANGLES.map((a) => {
+            const lit = pose.angle === a && !captured.has(a);
+            const progress = lit ? Math.min(1, pose.heldMs / HOLD_MS) : 0;
+            return (
+              <button
+                key={a}
+                type="button"
+                disabled={busy || pose.angle !== a}
+                onClick={() => void capture(a)}
+                className={`relative flex items-center justify-between overflow-hidden rounded-control border px-4 py-2 text-left text-15 disabled:opacity-50 ${captured.has(a) ? "border-live" : lit ? "border-brand bg-brand/10" : "border-line"}`}
+              >
+                {lit ? <span aria-hidden className="absolute inset-y-0 left-0 bg-brand/20" style={{ width: `${progress * 100}%`, transition: "width 80ms linear" }} /> : null}
+                <span className="relative">{ANGLE_LABEL[a]}</span>
+                <span className="relative text-13 text-muted">
+                  {captured.has(a) ? (busy && pose.angle === a ? "analysing" : "captured, press again to retake") : lit ? (busy ? "analysing" : progress > 0.1 ? "hold still" : "ready") : "turn your head"}
+                </span>
+              </button>
+            );
+          })}
           <label className="mt-2 text-13 text-muted">
             Or use photos from your device (they are analysed here too, not uploaded)
             <input type="file" accept="image/*" multiple disabled={busy} onChange={(e) => void analyseUpload(e.target.files)} className="mt-1 block text-13" />
           </label>
           <button type="button" disabled={busy || captures.length === 0} onClick={finish} className="mt-2 rounded-control bg-brand px-4 py-2 text-15 font-medium text-on-brand disabled:opacity-60">
-            {busy ? "Analysing" : `Finish with ${captures.length} ${captures.length === 1 ? "frame" : "frames"}`}
+            {busy ? "Analysing" : `Finish now with ${captures.length} ${captures.length === 1 ? "frame" : "frames"}`}
           </button>
           {error ? <p className="text-15 text-accent">{error}</p> : null}
         </div>

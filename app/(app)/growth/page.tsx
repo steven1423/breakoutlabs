@@ -4,7 +4,7 @@ import { DataBadge } from "@/components/badge";
 import { DiscoverButton } from "@/components/discover-button";
 import { EmptyState } from "@/components/empty-state";
 import { KpiRow } from "@/components/kpi";
-import { Leaderboard } from "@/components/leaderboard";
+import { Leaderboard, type ScanCell } from "@/components/leaderboard";
 import { PageHeader } from "@/components/page-header";
 import { Pager } from "@/components/pager";
 import { Segmented } from "@/components/segmented";
@@ -124,7 +124,7 @@ export default async function GrowthPage({ searchParams }: Props) {
                 </p>
               </div>
             ) : null}
-            {leaderboard.length === 0 ? <EmptyState title="No campaigns" body="Run pnpm seed to load the synthetic campaigns." /> : <Leaderboard rows={leaderboard} persona={persona} />}
+            {leaderboard.length === 0 ? <EmptyState title="No campaigns" body="Run pnpm seed to load the synthetic campaigns." /> : <Leaderboard rows={leaderboard} persona={persona} scans={scanCells(scans)} />}
           </>
         ) : (
           <>
@@ -190,7 +190,7 @@ function CreatorTable({ rows, partnered, scans, persona }: { rows: CreatorListRo
                     <span className="ml-1 text-13 text-muted">{scans.get(c.id)!.takenAt.slice(0, 10)}</span>
                   </Link>
                 ) : (
-                  <span className="text-13 text-muted" title="A scan exists only when the creator runs one on their own device">Not scanned</span>
+                  <span className="whitespace-nowrap text-13 text-muted" title="A scan exists only when the creator runs one on their own device">Not scanned</span>
                 )}
               </td>
               <td className="whitespace-nowrap px-4 py-2 text-muted">{SOURCE_LABEL[c.source] ?? c.source}</td>
@@ -207,4 +207,11 @@ const SOURCE_LABEL: Record<string, string> = { youtube_api: "YouTube search", ig
 
 function Th({ children, right }: { children: React.ReactNode; right?: boolean }) {
   return <th scope="col" className={`px-4 py-2 font-medium ${right ? "text-right" : ""}`}>{children}</th>;
+}
+
+/** The leaderboard is a client component, so it gets the scans as a plain record rather than a Map of rows. */
+function scanCells(scans: Map<string, SavedScan>): Record<string, ScanCell> {
+  const out: Record<string, ScanCell> = {};
+  for (const [id, s] of scans) out[id] = { band: BAND_LABEL[s.summary.band], perFrame: s.summary.lesionsPerFrame, takenAt: s.takenAt };
+  return out;
 }
