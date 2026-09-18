@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { enrichInstagramBatch } from "@/lib/creators/discover";
 
+export const maxDuration = 60;
+
 /** Cron entry point for the Instagram enrichment queue. Requires `Authorization: Bearer <CRON_SECRET>`. */
 export async function POST(request: Request) {
   const secret = process.env.CRON_SECRET;

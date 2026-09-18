@@ -1,20 +1,23 @@
 /**
  * Puts the two large model assets the skin scan needs under public/, where the browser loads them.
- * They are not committed: the 14 MB wasm runtime is copied from node_modules, and the 11 MB lesion
- * detector is copied from a folder you point at (the SkinLoop acne-model bundle) or downloaded
- * from MODEL_URL. GitHub's push protection also mis-reads a byte run inside the ONNX as a token.
+ * Neither is committed under public/: the 14 MB wasm runtime is copied from node_modules, and the
+ * 11 MB lesion detector is unpacked from the gzip in ./models (GitHub's push protection mis-reads
+ * a byte run inside the raw ONNX as a token, so the repo carries it compressed). A folder or URL
+ * overrides the packed copy, for trying a newer detector. Vercel runs this before `next build`.
  *
- * Usage: pnpm models                      (copies from ./vendor/acne-model if present)
+ * Usage: pnpm models                      (unpacks ./models/acne-detector-int8.onnx.gz)
  *        MODEL_DIR=/path/to/acne-model pnpm models
  *        MODEL_URL=https://.../acne-detector-int8.onnx pnpm models
  */
-import { copyFile, mkdir, stat, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { gunzipSync } from "node:zlib";
 
 const ORT_DIST = path.resolve("node_modules/onnxruntime-web/dist");
 const ORT_OUT = path.resolve("public/ort");
 const MODEL_OUT = path.resolve("public/models/acne");
 const MODEL_FILE = "acne-detector-int8.onnx";
+const PACKED = path.resolve("models", `${MODEL_FILE}.gz`);
 
 async function exists(p: string): Promise<boolean> {
   return stat(p).then(() => true, () => false);
@@ -44,7 +47,12 @@ async function main() {
     console.log(`fetched public/models/acne/${MODEL_FILE}`);
     return;
   }
-  console.log(`missing public/models/acne/${MODEL_FILE}: unzip the acne-model bundle to ./vendor/acne-model, or set MODEL_DIR or MODEL_URL. The scan page will say the detector is unavailable until then.`);
+  if (await exists(PACKED)) {
+    await writeFile(target, gunzipSync(await readFile(PACKED)));
+    console.log(`unpacked public/models/acne/${MODEL_FILE} from models/${MODEL_FILE}.gz`);
+    return;
+  }
+  console.log(`missing public/models/acne/${MODEL_FILE}: models/${MODEL_FILE}.gz is not in this checkout and neither MODEL_DIR nor MODEL_URL is set. The scan page will say the detector is unavailable until then.`);
 }
 
 main().catch((err) => {

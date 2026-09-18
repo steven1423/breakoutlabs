@@ -20,7 +20,7 @@ Requires Node 22.18 or newer (the scripts use Node's built-in TypeScript support
 4. `pnpm seed` loads 500 synthetic customers and everything attached to them, then prints row counts and a checksum. Run it twice: the checksum must not change.
 5. `pnpm dev` and open http://localhost:3000. Press Enter BreakoutOS; `/ops` should list kits with `BL-4471-XK` in Results locked.
 6. Optional: `pnpm sweep` opens tickets for stuck kits; `pnpm discover` pulls 40 YouTube channels (needs the key); `pnpm eval` runs the copilot evals (needs a model key).
-7. Optional, for the skin scan: unzip the SkinLoop `acne-model` bundle to `./vendor/acne-model` and run `pnpm models`. It copies the 11 MB lesion detector and the 14 MB onnxruntime wasm runtime under `public/`; neither is committed. Without it the scan page loads the face bundle and then says the detector is not installed.
+7. `pnpm models` puts the skin scan's two large assets under `public/`: the 14 MB onnxruntime wasm runtime from node_modules and the 11 MB lesion detector, unpacked from `models/acne-detector-int8.onnx.gz`. Without it the scan page loads the face bundle and then says the detector is not installed.
 
 What each page needs: `/ops`, `/intelligence`, `/brand` and `/model` work with Supabase alone. `/growth` shows seeded creators without the YouTube key and live ones with it. The copilot and creator cards need a model key.
 
@@ -40,7 +40,23 @@ What each page needs: `/ops`, `/intelligence`, `/brand` and `/model` work with S
 | `pnpm sweep` | Runs the stuck-kit sweep once; safe to repeat |
 | `pnpm discover` | Runs YouTube discovery once (needs YOUTUBE_API_KEY), upserts the creators as Live and rewrites the seed snapshot |
 | `pnpm eval` | Runs the 15 copilot evals against the live database (needs the key for the configured `MODEL_PROVIDER`) |
-| `pnpm models` | Copies the skin scan's wasm runtime from node_modules and the lesion detector from `./vendor/acne-model` (or `MODEL_DIR`, `MODEL_URL`) into `public/` |
+| `pnpm models` | Puts the skin scan's wasm runtime and lesion detector under `public/` (from node_modules and `models/*.gz`; `MODEL_DIR` or `MODEL_URL` override the packed detector) |
+
+## Deploy on Vercel
+
+The repo deploys from the Vercel dashboard with no code changes; `vercel.json` runs `pnpm models` before the build.
+
+1. Vercel, Add New, Project, import `steven1423/breakoutlabs`. Framework is detected as Next.js; leave the build settings alone.
+2. Project settings, General: Node.js version 22.x.
+3. Environment variables (values from your `.env.local`, names only listed here):
+   - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
+   - `MODEL_PROVIDER` and `GEMINI_API_KEY` (or `ANTHROPIC_API_KEY` with `MODEL_PROVIDER=anthropic`)
+   - `YOUTUBE_API_KEY`, `MIN_COHORT`
+   - `ENABLE_EXPERIMENTAL_COREPACK=1`, so Vercel installs with the pnpm version pinned in `package.json`
+   Do not add `SUPABASE_ACCESS_TOKEN` or `SUPABASE_PROJECT_REF`; they are for migrations from your machine only.
+4. Deploy. The first build takes two to three minutes. The camera on the scan page needs HTTPS, which every Vercel URL has.
+
+The database is already migrated and seeded from your machine, so the deployed app reads the same Supabase project. Run `pnpm migrate` and `pnpm seed` locally whenever the schema or seed changes.
 
 ## Database
 

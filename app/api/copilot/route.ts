@@ -5,6 +5,8 @@ import { copilotKeyName, isCopilotConfigured } from "@/lib/copilot/env";
 import { publicRecord, type CopilotEvent } from "@/lib/copilot/loop";
 
 export const dynamic = "force-dynamic";
+/** The tool loop (up to 8 calls) and a creator card can outlast a serverless default; Vercel reads this. */
+export const maxDuration = 60;
 
 const bodySchema = z.object({
   question: z.string().min(1).max(2000),

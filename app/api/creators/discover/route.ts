@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { runDiscovery } from "@/lib/creators/discover";
 
+export const maxDuration = 60;
+
 /** Cron entry point for YouTube discovery. Requires `Authorization: Bearer <CRON_SECRET>`; refuses when unset. */
 export async function POST(request: Request) {
   const secret = process.env.CRON_SECRET;

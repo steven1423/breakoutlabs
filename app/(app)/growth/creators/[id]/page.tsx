@@ -15,6 +15,8 @@ import { BAND_LABEL } from "@/lib/scan/summarize";
 
 export const metadata: Metadata = { title: "Creator" };
 export const dynamic = "force-dynamic";
+/** The tool loop (up to 8 calls) and a creator card can outlast a serverless default; Vercel reads this. */
+export const maxDuration = 60;
 
 type Props = { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> };
 

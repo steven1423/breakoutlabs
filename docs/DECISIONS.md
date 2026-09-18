@@ -512,3 +512,16 @@ Steven's review of the running product: the pages were tables with no stated pur
 - What: once a head angle is held for 1.5 s the frame is captured by itself, with a fill bar in the row showing the wait; Space captures the lit row at once; the third angle closes the camera and opens the results. The buttons remain for retakes.
 - Why: the first webcam test showed the obvious flaw of a button per angle: nobody can look at the screen to click while their head is turned to the side, and the button disables the moment they turn back. The pose loop already runs at twelve frames a second, so it is the natural place to count the hold. It reads refs, not state, so a stale closure can never fire a capture twice.
 - Alternative: a voice or countdown-on-click flow. Both add a step; holding still is what a person does anyway once a row lights up.
+
+## M12 — Deploy on Vercel
+
+### The detector ships in the repo, gzipped
+
+- What: `models/acne-detector-int8.onnx.gz` (7.8 MB) is committed; `pnpm models` unpacks it into `public/models/acne/` and `vercel.json` runs that step before `next build`. `MODEL_DIR` and `MODEL_URL` still override it.
+- Why: the raw ONNX trips GitHub's push protection on a byte run that looks like a token, so it could not be committed as is, and a build on Vercel has no `vendor/` folder to copy from. Hosting it on Supabase Storage would have added a second service and an env var to the setup; the compressed file in git makes a fresh clone and a Vercel import both self-contained.
+- Alternative: Git LFS. Vercel does support it, but it is one more thing for a stranger to install, and the file is small enough not to need it.
+
+### Function timeouts are declared where a model or an API is called
+
+- What: `export const maxDuration = 60` on the copilot route, the creators discover and enrich routes, the growth page and the creator page (the last two host the server actions for discovery and card generation).
+- Why: the copilot loop may make eight tool calls and a creator card is one Gemini or Claude call; on a serverless platform the default budget is the one thing that would make these pages fail in production and not on a laptop.
