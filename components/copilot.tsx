@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { TransparencyPanel } from "@/components/transparency-panel";
 import type { CopilotEvent, ToolCallRecord } from "@/lib/copilot/loop";
 
@@ -15,11 +15,14 @@ const EXAMPLES = [
 ];
 
 /** Plain-English questions over the database, with the answer streamed and every tool call shown. */
-export function Copilot({ configured, label }: { configured: boolean; label: string }) {
+type Pending = { id: number; text: string } | null;
+
+export function Copilot({ configured, label, pending = null }: { configured: boolean; label: string; pending?: Pending }) {
   const router = useRouter();
   const [turns, setTurns] = useState<Turn[]>([]);
   const [question, setQuestion] = useState("");
   const [busy, setBusy] = useState(false);
+  const askedRef = useRef<number | null>(null);
 
   async function ask(q: string) {
     const text = q.trim();
@@ -62,6 +65,14 @@ export function Copilot({ configured, label }: { configured: boolean; label: str
       setBusy(false);
     }
   }
+
+  // A question handed in from the page (the launcher's example chips) is asked once, by id.
+  useEffect(() => {
+    if (!pending || askedRef.current === pending.id || !configured) return;
+    askedRef.current = pending.id;
+    void ask(pending.text);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pending, configured]);
 
   return (
     <div className="mt-4 rounded-panel border border-line">

@@ -10,7 +10,18 @@ import { Copilot } from "@/components/copilot";
  */
 export function CopilotDock({ configured, label }: { configured: boolean; label: string }) {
   const [open, setOpen] = useState(false);
+  const [pending, setPending] = useState<{ id: number; text: string } | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const onOpen = (e: Event) => {
+      const question = (e as CustomEvent<{ question?: string }>).detail?.question;
+      setOpen(true);
+      if (question) setPending({ id: Date.now(), text: question });
+    };
+    window.addEventListener("copilot:open", onOpen);
+    return () => window.removeEventListener("copilot:open", onOpen);
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -49,7 +60,7 @@ export function CopilotDock({ configured, label }: { configured: boolean; label:
           <button type="button" onClick={() => setOpen(false)} className="rounded-control border border-line px-2 py-1 text-13 text-muted hover:text-text">Close</button>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-24 pt-2">
-          <Copilot configured={configured} label={label} />
+          <Copilot configured={configured} label={label} pending={pending} />
         </div>
       </div>
     </>
