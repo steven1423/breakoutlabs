@@ -76,6 +76,14 @@ The demo dataset runs with a minimum cohort of 10 (500 synthetic customers, 209 
 
 None so far.
 
+## After M11: the skin scan
+
+**Live, on the subject's device.** `/scan/creator/[id]` runs the face bundle and the lesion detector in the browser; nothing is uploaded to run them. What is saved is a summary (band, marks per frame, per zone, angles, times, model) and per-frame metadata; no image and no face descriptor exist anywhere on the server. The creators tab shows a reading only for creators who have run a scan themselves; every seeded creator shows "Not scanned", because nothing is ever pulled from their videos or photos.
+
+**Not built, on purpose.** Screenshotting creators' faces from their videos and scoring them: biometric and health inference about identifiable people without consent, and §13's facial-scanner cut. See `docs/DECISIONS.md`, M11.
+
+**Untested in this sandbox.** The camera flow could not be exercised here (no camera, and the sandbox's data-handling guard blocks synthetic face inputs); the pure parts (letterbox, decode, NMS, zones, summary, schema) are unit tested. Steven should run the scan once on his own webcam before recording.
+
 ## After M9
 
 The six app pages were rebuilt around headline numbers, a purpose strip and paged lists; the copilot became a dock in the shell. Nothing about what is Live or Seeded changed. The new numbers on `/growth/allocator` (expected retests under three splits) and `/model` (sensitivity, year summary) are arithmetic over seeded data and carry the Seeded badge with the rest of their pages.

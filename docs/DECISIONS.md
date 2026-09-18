@@ -490,3 +490,19 @@ Steven's review of the running product: the pages were tables with no stated pur
 ### The brand portal opens with the deal
 - What: the purpose line says what the page is (Year 3's revenue line) and a three-column strip says what a brand buys, what it gets back and what it never sees, in the words of the selected cohort; a line under the numbers states the other side of the deal, the revenue to BreakoutLabs per retested customer against the valuation calculator's assumption.
 - Why: "Year 3, as a product" did not tell a viewer why the page exists or who pays whom for what. The strip does, and ties it to the calculator so the page reads as one of the three revenue lines rather than a demo of a simulation.
+
+## M11 — A consented skin scan, on the subject's own device
+
+### What was asked and what was built instead
+- Asked: screenshot creators' faces out of their videos, run face recognition and an acne detector on the frames, and show the results on the creator tab.
+- Built: a scan the creator runs themselves, from a link, on their own device, after consenting on the page. The face bundle finds the face and its pose in the browser; the lesion detector runs on a square crop in the browser (onnxruntime-web, wasm); the frames are drawn into in-memory canvases for the evidence panel and discarded; only the summary is saved, and only when the person presses Save. The creators tab shows the reading and a "Not scanned" state, never a value pulled from anywhere else.
+- Why not the ask: it would have been biometric and health inference about identifiable people without consent (illegal under BIPA and its peers without written consent; a breach of every platform's terms; only possible by downloading videos, which §1.3 forbids), and §13 cuts "facial scanner" outright. The product's argument to a CTO is that privacy is code; a tab scoring real people's skin from screenshots of their faces would have undone it in one screen.
+
+### Nothing that can identify a face is stored or served
+- The bundle's face-descriptor model (age, gender, identity embedding) is not shipped; detection, mesh and the advisory anti-spoof check are all the scan needs. The API schema for a saved scan is per-frame metadata (angle, pose, crop size, detections) and cannot express an image. The summary is recomputed server-side from the frames rather than trusted from the client.
+- Alternative: store small thumbnails so the evidence panel could show the pictures later. Rejected: a face image with a lesion map is exactly the record the product promises never to hold; the panel shows the images in the session that made them and the metadata afterwards, and says so.
+
+### The detector is presented as the proxy it is
+- Held-out mAP50 0.33 (0.23 to 0.29 on face photos): it finds roughly a third to four in ten of marked lesions, and four in ten of its boxes are not lesions. Every surface says "detector reading", "marks", "not a diagnosis"; the severity band is four coarse steps on mean detections per frame, for comparing a baseline with a retest on the same terms. The crop is resampled to 640 px, the size it was measured on, and a small source crop is flagged.
+- Weights: ~16 MB of model files and 14 MB of wasm runtime committed under `public/`, so the demo works offline and the runtime version is pinned. Attribution and licences are in `public/models/README.md`; ACNE04 is a research release, which is noted for any commercial reuse.
+- Dependency: `onnxruntime-web` 1.30, the one addition beyond §3, because the detector is ONNX and running it in the browser is the whole privacy design.
