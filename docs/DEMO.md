@@ -31,13 +31,13 @@ Click **Enter BreakoutOS**. It lands on `/ops` as the Support persona.
 
 ## Beat 2 — ops and the copilot, 90 seconds
 
-On `/ops`, the state track along the top carries one mark per kit, garnet where a kit is past its SLA. Point at `results_locked`.
+On `/ops`, six headline numbers, then the lifecycle track: eleven steps from order to retest, a bar per step, garnet where kits are past their SLA, and the three exception states hanging under the step they branch from. Point at **Results locked**, 16 kits, all stuck.
 
 Click kit **BL-4471-XK** in the stuck queue. It is in Results locked, 115 hours in state, 91 hours past the 24 hour SLA, and the timer is live. Its ticket is "Kit ID invalid", classified by the sweep as portal lockout.
 
 Say: this is the state that produces one-star reviews. Results exist and the customer cannot reach them. Nobody filed this, the sweep found it.
 
-Back on `/ops`, ask the copilot:
+Back on `/ops`, press **Ask the copilot** in the bottom-right corner. The panel slides in from the right and follows you between pages. Ask:
 
 > customers whose results are ready but haven't logged in for 7 days
 
@@ -51,15 +51,15 @@ It declines, says it is read-only, and offers to propose an action instead.
 
 Say: it reads through ten typed tools and one guarded SQL path, as a Postgres role that can only see masked views. It cannot write. The only write in the whole agent is a proposal a human confirms.
 
-Scroll to **Proposed actions** and click **Confirm nudge** on one. The row records the decision. Nothing is sent: there is no send in this system.
+Close the panel. In the **Work queue**, switch to **Proposed actions** and click **Confirm nudge** on one. The row records the decision. Nothing is sent: there is no send in this system. The queue pages 25 at a time; **Stuck kits**, **Open tickets** and **All kits** are the other views.
 
 ## Beat 3 — growth, 90 seconds
 
-On `/growth`, press **Discover on YouTube**. It runs the seven discovery queries, enriches what it finds, drops everything under 1,000 subscribers, and flips those rows to Live with the badge. It reports how many it dropped and how much quota is left.
+On `/growth`, open the **All creators** tab and press **Discover on YouTube**. It runs the seven discovery queries, enriches what it finds, drops everything under 1,000 subscribers, and flips those rows to Live with the badge. It reports how many it dropped and how much quota is left.
 
 Say: discovery is a commodity. Every row says which adapter produced it and whether its numbers are live.
 
-Now the leaderboard. Ranked by followers, **tayglowsup** is first: 430,000 followers, and $1,933 per retest on 3 retests from 40 orders. Click **Rank by cost-per-retest**. The rows animate and **hannah.hormonehealth** takes first place: 61,000 followers, $175 per retest on 8 retests from 14 orders.
+Now the **Campaign leaderboard** tab. The callout above it already states the story; the table proves it. Ranked by followers, **tayglowsup** is first: 430,000 followers, and $1,933 per retest on 3 retests from 40 orders. Click **Rank by cost-per-retest**. The rows animate and **hannah.hormonehealth** takes first place: 61,000 followers, $175 per retest on 8 retests from 14 orders.
 
 Say: the same fourteen orders look small until you price them by the thing that compounds. This is the metric the business runs on and nobody else in acne can compute it.
 

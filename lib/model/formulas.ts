@@ -112,3 +112,33 @@ export function project(inputs: ModelInputs): Projection {
   }
   return { rows, horizon: rows[rows.length - 1], retestRate };
 }
+
+/** Valuation at the horizon for each pricing model across a range of retest rates: the thesis as a curve. */
+export function sensitivity(inputs: ModelInputs, rates: readonly number[]): { rate: number; byPlan: Record<Plan, number> }[] {
+  return rates.map((rate) => ({
+    rate,
+    byPlan: Object.fromEntries(PLANS.map((plan) => [plan, project({ ...inputs, plan, retestRate: rate }).horizon.valuation])) as Record<Plan, number>,
+  }));
+}
+
+export type YearRow = { year: number; endMonth: number; newCustomers: number; members: number; retestedCum: number; arr: number; brandRevenueAnnual: number; valuation: number };
+
+/** One row per completed year within the horizon: what the company looks like at month 12, 24, 36. */
+export function yearSummary(projection: Projection): YearRow[] {
+  const out: YearRow[] = [];
+  for (let year = 1; year * 12 <= projection.rows.length; year++) {
+    const months = projection.rows.slice((year - 1) * 12, year * 12);
+    const end = months[months.length - 1];
+    out.push({
+      year,
+      endMonth: end.month,
+      newCustomers: months.reduce((a, r) => a + r.newCustomers, 0),
+      members: end.members,
+      retestedCum: end.retestedCum,
+      arr: end.arr,
+      brandRevenueAnnual: end.brandRevenue * 12,
+      valuation: end.valuation,
+    });
+  }
+  return out;
+}

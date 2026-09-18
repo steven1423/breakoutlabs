@@ -75,3 +75,7 @@ The demo dataset runs with a minimum cohort of 10 (500 synthetic customers, 209 
 ## Milestones that did not meet their definition of done
 
 None so far.
+
+## After M9
+
+The six app pages were rebuilt around headline numbers, a purpose strip and paged lists; the copilot became a dock in the shell. Nothing about what is Live or Seeded changed. The new numbers on `/growth/allocator` (expected retests under three splits) and `/model` (sensitivity, year summary) are arithmetic over seeded data and carry the Seeded badge with the rest of their pages.

@@ -14,7 +14,8 @@ type Props = { consentRate: number; consented: number; total: number; minCohort:
 export function Guardrails({ consentRate, consented, total, minCohort, exports }: Props) {
   const [state, action, pending] = useActionState(setMinCohortAction, initial);
   return (
-    <aside className="flex flex-col gap-5 rounded-panel border border-line bg-surface p-5 text-15">
+    <aside className="flex flex-col gap-5 self-start rounded-panel border border-line bg-surface p-5 text-15">
+      <p className="text-24">Guardrails</p>
       <div>
         <p className="text-13 text-muted">Research consent</p>
         <p className="text-24">{Math.round(consentRate * 100)}%</p>
@@ -35,10 +36,10 @@ export function Guardrails({ consentRate, consented, total, minCohort, exports }
       </form>
 
       <div className="flex flex-col gap-2">
-        <p className="text-13 text-muted">Export</p>
         {exports.map((e) => (
           <a key={e.href} href={e.href} className="rounded-control border border-line px-3 py-2 text-center hover:bg-raised">{e.label}</a>
         ))}
+        <p className="text-13 text-muted">Row-level export</p>
         <button type="button" disabled title="Row-level export does not exist in this system." className="cursor-not-allowed rounded-control border border-line px-3 py-2 text-muted opacity-60">
           Export rows
         </button>

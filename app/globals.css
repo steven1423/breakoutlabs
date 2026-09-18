@@ -18,6 +18,13 @@
   --chart-membership: #b8892d;
   --chart-kits: #009680;
   --chart-brand: #a94753;
+  /* Six categorical slots for the segment mix (M9), validated on this surface with the dataviz palette script. */
+  --seg-1: #3987e5;
+  --seg-2: #d95926;
+  --seg-3: #199e70;
+  --seg-4: #c98500;
+  --seg-5: #d55181;
+  --seg-6: #9085e9;
 }
 
 @media (prefers-color-scheme: light) {
@@ -38,6 +45,12 @@
     --chart-membership: #ac7d1b;
     --chart-kits: #008a74;
     --chart-brand: #953543;
+    --seg-1: #2a78d6;
+    --seg-2: #eb6834;
+    --seg-3: #1baf7a;
+    --seg-4: #eda100;
+    --seg-5: #e87ba4;
+    --seg-6: #4a3aa7;
   }
 }
 
@@ -96,10 +109,12 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Links get a 24px tap target (WCAG 2.5.8) without changing how they read inline. */
-a {
-  display: inline-block;
-  min-height: 24px;
+/* Links get a 24px tap target (WCAG 2.5.8) without changing how they read inline. In the base layer so a flex or block utility can override it. */
+@layer base {
+  a {
+    display: inline-block;
+    min-height: 24px;
+  }
 }
 
 :focus-visible {

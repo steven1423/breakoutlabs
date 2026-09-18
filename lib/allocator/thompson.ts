@@ -134,3 +134,24 @@ function logGamma(z: number): number {
   const t = z + g + 0.5;
   return 0.5 * Math.log(2 * Math.PI) + (z + 0.5) * Math.log(t) - t + Math.log(x);
 }
+
+/**
+ * Central credible interval of a Beta posterior, by numeric integration of the density on a fine
+ * grid. Good to about a tenth of a point, which is all a chart label needs.
+ */
+export function betaInterval(p: Posterior, mass = 0.9, steps = 2000): [number, number] {
+  const tail = (1 - mass) / 2;
+  const cdf: number[] = [0];
+  let total = 0;
+  for (let i = 1; i < steps; i++) {
+    const a = betaPdf((i - 0.5) / steps, p.alpha, p.beta);
+    total += a / steps;
+    cdf.push(total);
+  }
+  const at = (q: number): number => {
+    const target = q * total;
+    const i = cdf.findIndex((c) => c >= target);
+    return Math.min(1, Math.max(0, (i < 0 ? steps : i) / steps));
+  };
+  return [at(tail), at(1 - tail)];
+}

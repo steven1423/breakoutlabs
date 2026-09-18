@@ -1,21 +1,11 @@
 import { decideActionAction } from "@/lib/ops/actions";
-import { humanise } from "@/lib/ops/queries";
-
-export type PendingActionRow = {
-  id: string;
-  type: string;
-  status: string;
-  proposed_by: string;
-  created_at: string;
-  payload: unknown;
-  customer: { first_name: string } | null;
-};
+import { humanise, type PendingActionRow } from "@/lib/ops/queries";
 
 /** Proposals from the copilot and the sweep. Confirm records the decision; nothing is ever sent. */
 export function PendingActions({ actions }: { actions: PendingActionRow[] }) {
-  if (actions.length === 0) return <p className="mt-2 text-15 text-muted">Nothing proposed. Ask the copilot or run the sweep.</p>;
+  if (actions.length === 0) return <p className="px-4 py-6 text-15 text-muted">Nothing proposed. Ask the copilot or run the sweep.</p>;
   return (
-    <ul className="mt-4 divide-y divide-line rounded-panel border border-line">
+    <ul className="divide-y divide-line">
       {actions.map((a) => (
         <li key={a.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-15">
           <div className="min-w-0 flex-1">

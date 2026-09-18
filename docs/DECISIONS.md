@@ -428,3 +428,41 @@ Everything in this section was found by a preflight of the merged build and a ni
 - Why: the old rail had two lists that echoed each other (Growth appeared in both) and re-sorted the groups whenever the persona changed, so the same click landed in a different place each time. Steven could not use it and said so. Personas only re-skin copy and never change data access, so the cost of losing "view /ops as Founder" is nothing anyone would miss.
 - Alternative: keep the switcher and stop the re-sort. Rejected because the duplication was half the confusion.
 - Second pass, same complaint: three groups instead of four, with the partner brand portal under Growth (its link still views the app as the brand persona), bold titles that read as titles because they are not links, and page names that say what the page shows: Ad budget split, Customer insights, Valuation calculator, Partner brand portal. The page headlines were renamed to match, so the rail and the page never disagree.
+
+## M9 — Every page rebuilt around the question it answers
+
+Steven's review of the running product: the pages were tables with no stated purpose, the ops grid had no order, the copilot took a third of a page, the lists ran for hundreds of rows, and the content sat in the left two-thirds of the screen. This milestone is the response. The data model, the guard, the allocator and the copilot did not change; how they are shown did.
+
+### The shell fills the screen and carries the copilot
+- What: content runs to 1720px with the rail beside it; the copilot is a dock, a button in the bottom-right corner on every page that opens a side panel with the same chat and transparency panel.
+- Why: the copilot is a way of asking the database a question, which is useful on every page, not a section of one. Putting it in the shell means the conversation survives navigation. The 1280px column from §14 left a third of a wide screen empty; the tables and charts on these pages use the width.
+- Alternative: a chat page of its own. Rejected because the answer is about whatever you are looking at.
+
+### Every page opens with six numbers and a purpose strip
+- What: a KPI row of six headline numbers, then a "What this page is for" strip: the job in one sentence and the three things you do here.
+- Why: a first-time viewer asked "why is this table here". The strip answers before the table is reached, and the six numbers are the ones a founder would ask for in the first minute. The KPI tile is one component so every page reads the same.
+
+### Long lists page at 25 with the page number in the URL
+- What: `lib/ui/paging.ts` and a `Pager` of links. Views are links too (`?view=tickets&page=2`), so a state can be shared and survives refresh.
+- Why: 588 kits and 350 proposals in one scroll was unusable; client-side paging would have meant shipping every row to the browser. Server paging keeps the page a server component and the URL the only state.
+
+### The kit lifecycle is a track, not a grid
+- What: the eleven happy-path states in order under four phase headings, a bar per state scaled to the busiest, the stuck share in garnet, and the three exception states indented under the step they branch from.
+- Why: the previous grid wrapped sixteen equal cards in whatever order the screen width produced. The order is the product; the exception states are branches, and drawing them as branches is what makes "results locked hangs off resulted" legible without a sentence.
+
+### The allocator page states its value in retests
+- What: expected retests from this split, against the same budget split by followers and split evenly, from each campaign's observed cost per order and posterior mean (`lib/allocator/compare.ts`); a 90% credible interval on every posterior (`betaInterval`, numeric integration of the density); a this-run-against-last chart; the posteriors as small multiples with the interval shaded.
+- Why: "Thompson sampling" is a mechanism, not a reason. The reason is that the same $10,000 buys more retests when it follows retests than when it follows followers, and the page now says by how much.
+
+### The brand portal is a funnel, an interval and the segment's real numbers
+- What: a funnel chart with step conversions, an outcome chart with 95% whiskers on both arms, the segment's guarded marker deltas, and a table of every segment's size, share, retest rate and improvement rate from the guard.
+- Why: a brand buying placement wants to know what the cohort looks like today, not only a simulated lift. Everything in that section is a guarded aggregate; the simulated part is labelled as such on every figure.
+
+### Customer insights adds three datasets and a downloads table
+- What: retest rate by signup month, improved-at-retest by segment, retest rate by segment, and the segment mix by age band as 100% stacked bars; a downloads table listing every dataset, its cells and how many are suppressed, each with a CSV link; the guardrails card beside it.
+- Why: the three new cuts were the questions the old page could not answer (is retention improving over time, which root cause responds, which comes back). All go through the same guard and the same three-dimension cap.
+- Palette: the six segment hues are the dataviz reference categorical slots, validated with the skill's script on both surfaces (dark 6/6 pass; light passes with three contrast warnings, which the direct labels and the table under the chart satisfy).
+
+### The valuation calculator shows the thesis as a curve
+- What: valuation at the horizon against retest rate from 10% to 90% for all three pricing models on one chart, valuation over time inside the 6× to 25× multiple band, a year-by-year table, and a formulas panel in place of two paragraphs of prose. `sensitivity()` and `yearSummary()` are pure and tested.
+- Why: "drag the slider and watch the number" shows one point; the sensitivity chart shows the whole function, and that the membership-first curve is above the standalone curve at every retest rate is the argument for the pricing change in one picture.

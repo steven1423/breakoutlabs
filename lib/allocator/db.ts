@@ -49,17 +49,29 @@ export async function loadEvidence(db: ServiceClient): Promise<Evidence[]> {
   return [...counts.entries()].map(([campaignId, c]) => ({ campaignId, ...c }));
 }
 
-export type AllocatorView = { latest: AllocatorRun | null; previous: AllocatorRun | null; campaigns: Record<string, { code: string; handle: string }> };
+export type CampaignInfo = { code: string; handle: string; platform: string; orders: number; retested: number; spend: number; followers: number | null };
+export type AllocatorView = { latest: AllocatorRun | null; previous: AllocatorRun | null; campaigns: Record<string, CampaignInfo> };
 
+/** The last two runs plus what each campaign has shown so far, for the page's comparisons. */
 export async function loadAllocatorView(db: ServiceClient = createServiceSupabase()): Promise<AllocatorView> {
-  const [runs, campaigns] = await Promise.all([
+  const [runs, campaigns, attributions] = await Promise.all([
     db.from("allocator_runs").select("id, run_at, budget_usd, posterior, allocation").order("run_at", { ascending: false }).limit(2),
-    db.from("campaigns").select("id, code, creator:creators(handle)"),
+    db.from("campaigns").select("id, code, spend_usd, creator:creators(handle, platform, followers)"),
+    db.from("attributions").select("campaign_id, retested"),
   ]);
   if (runs.error) throw new Error(runs.error.message);
   if (campaigns.error) throw new Error(campaigns.error.message);
+  if (attributions.error) throw new Error(attributions.error.message);
   const map: AllocatorView["campaigns"] = {};
-  for (const c of campaigns.data) map[c.id] = { code: c.code, handle: c.creator?.handle ?? "unknown" };
+  for (const c of campaigns.data) {
+    map[c.id] = { code: c.code, handle: c.creator?.handle ?? "unknown", platform: c.creator?.platform ?? "", orders: 0, retested: 0, spend: Number(c.spend_usd), followers: c.creator?.followers ?? null };
+  }
+  for (const a of attributions.data) {
+    const c = map[a.campaign_id];
+    if (!c) continue;
+    c.orders++;
+    if (a.retested) c.retested++;
+  }
   return { latest: runs.data[0] ? toRun(runs.data[0]) : null, previous: runs.data[1] ? toRun(runs.data[1]) : null, campaigns: map };
 }
 
