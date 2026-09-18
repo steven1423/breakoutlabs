@@ -17,7 +17,7 @@ export default function LandingPage() {
           <p key={line} className="thesis-line" style={{ ["--i" as string]: i }}>{line}</p>
         ))}
       </div>
-      <Link href="/ops?as=support" className="thesis-enter rounded-control bg-accent px-5 py-2.5 text-15 font-medium text-white">
+      <Link href="/ops?as=support" className="thesis-enter rounded-control bg-lime px-6 py-3 text-18 font-bold text-on-lime">
         Enter BreakoutOS
       </Link>
       <p className="text-13 text-muted">Synthetic customers throughout. Every view says whether its numbers are live or seeded.</p>
