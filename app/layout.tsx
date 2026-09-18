@@ -1,17 +1,12 @@
 import type { Metadata } from "next";
-import { Fraunces, IBM_Plex_Sans } from "next/font/google";
+import { Assistant } from "next/font/google";
 import "./globals.css";
 
-const plex = IBM_Plex_Sans({
+/** BreakoutLabs' own typeface (breakoutlab.co sets Assistant for body and headings). One family, three weights. */
+const assistant = Assistant({
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  variable: "--font-plex",
-  display: "swap",
-});
-
-const fraunces = Fraunces({
-  subsets: ["latin"],
-  variable: "--font-fraunces",
+  weight: ["400", "600", "700"],
+  variable: "--font-assistant",
   display: "swap",
 });
 
@@ -22,7 +17,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${plex.variable} ${fraunces.variable}`}>
+    <html lang="en" className={assistant.variable}>
       <body>{children}</body>
     </html>
   );

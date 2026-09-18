@@ -113,7 +113,7 @@ export function Copilot({ configured, label, pending = null }: { configured: boo
           aria-label="Question for the copilot"
           className="flex-1 rounded-control border border-line bg-bg px-3 py-2 text-15 disabled:opacity-60"
         />
-        <button type="submit" disabled={!configured || busy || !question.trim()} className="rounded-control bg-accent px-4 py-2 text-15 font-medium text-white disabled:opacity-60">
+        <button type="submit" disabled={!configured || busy || !question.trim()} className="rounded-control bg-brand px-4 py-2 text-15 font-medium text-on-brand disabled:opacity-60">
           {busy ? "Thinking" : "Ask"}
         </button>
       </form>

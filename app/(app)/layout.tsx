@@ -7,7 +7,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen">
       <a href="#main" className="skip-link">Skip to content</a>
-      <aside className="w-60 shrink-0 border-r border-line bg-surface">
+      <aside className="w-60 shrink-0 border-r border-line bg-rail text-on-rail">
         <Suspense fallback={<RailFallback />}>
           <Rail />
         </Suspense>

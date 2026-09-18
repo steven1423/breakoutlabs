@@ -41,7 +41,7 @@ export function StateGrid({ cells }: { cells: Cell[] }) {
             );
           }
           const share = cell.value ?? 0;
-          const alpha = 0.15 + 0.6 * (share / maxShare);
+          const alpha = 0.1 + 0.38 * (share / maxShare);
           return (
             <div
               key={state}

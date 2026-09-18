@@ -70,7 +70,7 @@ export function CopilotDock({ configured, label }: { configured: boolean; label:
 /** A four-point spark, the one icon in the shell: it marks the thing that answers questions. */
 function Spark() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="var(--accent)">
+    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="var(--brand)">
       <path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9z" />
       <path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z" opacity="0.7" />
     </svg>

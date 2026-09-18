@@ -133,7 +133,7 @@ export default async function OpsPage({ searchParams }: Props) {
           <Segmented options={options} active={view} label="Queue view" />
           {stateFilter && (view === "stuck" || view === "kits") ? (
             <span className="flex items-center gap-2 text-15">
-              <span className="rounded-control border border-accent/60 px-2 py-0.5 text-13">{humanise(stateFilter)} only</span>
+              <span className="rounded-control border border-brand/60 px-2 py-0.5 text-13">{humanise(stateFilter)} only</span>
               <Link href={href({ state: null, page: null })} className="text-13 text-muted underline decoration-line underline-offset-4 hover:text-text">Clear</Link>
             </span>
           ) : null}

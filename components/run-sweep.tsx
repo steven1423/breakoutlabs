@@ -13,7 +13,7 @@ export function RunSweep() {
       <button
         type="submit"
         disabled={pending}
-        className="rounded-control bg-accent px-4 py-2 text-15 font-medium text-white disabled:opacity-60"
+        className="rounded-control bg-brand px-4 py-2 text-15 font-medium text-on-brand disabled:opacity-60"
       >
         {pending ? "Sweeping" : "Run sweep"}
       </button>

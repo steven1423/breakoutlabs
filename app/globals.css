@@ -1,56 +1,67 @@
 @import "tailwindcss";
 
-/* Design tokens (CLAUDE.md §14). Dark is the default; light honours the viewer's setting. */
+/* Design tokens, in BreakoutLabs' own theme (breakoutlab.co): dark teal, lime highlight, Assistant.
+   Light is the default because their site is light; dark honours the viewer's setting on the same teal. */
 :root {
-  --bg: #12222e;
-  --surface: #1a2f3d;
-  --raised: #223b4b;
-  --line: #2e4a5c;
-  --text: #e9f0f3;
-  --muted: #8fa5b3;
-  --accent: #b23a48;
-  --live: #4fb0a6;
-  --seeded: #d9a441;
-  --optimal: #4fb0a6;
-  --high: #b23a48;
-  --low: #d9a441;
-  /* Chart series (M5): same hue family as the tokens, re-stepped to pass the palette validator on this surface. */
-  --chart-membership: #b8892d;
-  --chart-kits: #009680;
-  --chart-brand: #a94753;
-  /* Six categorical slots for the segment mix (M9), validated on this surface with the dataviz palette script. */
-  --seg-1: #3987e5;
-  --seg-2: #d95926;
-  --seg-3: #199e70;
-  --seg-4: #c98500;
-  --seg-5: #d55181;
-  --seg-6: #9085e9;
+  --bg: #f4f7f7;
+  --surface: #ffffff;
+  --raised: #e8f0f0;
+  --line: #d3e0e1;
+  --text: #0f2a2e;
+  --muted: #4d6a6e;
+  --brand: #03444c;          /* the logo's teal: primary actions and the loop */
+  --on-brand: #ffffff;
+  --rail: #03444c;           /* the rail is always the logo's teal, in both schemes */
+  --on-rail: #ffffff;
+  --lime: #d0f579;           /* their highlight: the landing CTA and the loop's spot */
+  --on-lime: #03444c;
+  --accent: #c0475a;         /* stuck states and danger; their coral, darkened for text contrast */
+  --live: #166b64;
+  --seeded: #86590a;
+  --optimal: #166b64;
+  --high: #c0475a;
+  --low: #86590a;
+  /* Chart series, from their palette, re-stepped to pass the palette validator on white. */
+  --chart-membership: #eda100;
+  --chart-kits: #1baf7a;
+  --chart-brand: #e87ba4;
+  --seg-1: #2a78d6;
+  --seg-2: #eb6834;
+  --seg-3: #1baf7a;
+  --seg-4: #eda100;
+  --seg-5: #e87ba4;
+  --seg-6: #4a3aa7;
 }
 
-@media (prefers-color-scheme: light) {
+@media (prefers-color-scheme: dark) {
   :root {
-    --bg: #f2f5f6;
-    --surface: #ffffff;
-    --raised: #e9eef0;
-    --line: #d3dce1;
-    --text: #12222e;
-    --muted: #4f6675;
-    /* Darker ink versions of the same hues so text on white stays readable. */
-    --accent: #9e2f3c;
-    --live: #25736c;
-    --seeded: #8f6410;
-    --optimal: #25736c;
-    --high: #9e2f3c;
-    --low: #8f6410;
-    --chart-membership: #ac7d1b;
-    --chart-kits: #008a74;
-    --chart-brand: #953543;
-    --seg-1: #2a78d6;
-    --seg-2: #eb6834;
-    --seg-3: #1baf7a;
-    --seg-4: #eda100;
-    --seg-5: #e87ba4;
-    --seg-6: #4a3aa7;
+    --bg: #032b31;
+    --surface: #03444c;
+    --raised: #0b535b;
+    --line: #1f6169;
+    --text: #eef6f6;
+    --muted: #a8c6c9;
+    --brand: #d0f579;        /* on the teal surface the lime is the brand colour; the teal is the paper */
+    --on-brand: #03444c;
+    --rail: #03444c;
+    --on-rail: #ffffff;
+    --lime: #d0f579;
+    --on-lime: #03444c;
+    --accent: #f08a97;
+    --live: #5fd1c6;
+    --seeded: #f0c14b;
+    --optimal: #5fd1c6;
+    --high: #f08a97;
+    --low: #f0c14b;
+    --chart-membership: #c98500;
+    --chart-kits: #3987e5;
+    --chart-brand: #e66767;
+    --seg-1: #3987e5;
+    --seg-2: #d95926;
+    --seg-3: #199e70;
+    --seg-4: #c98500;
+    --seg-5: #d55181;
+    --seg-6: #9085e9;
   }
 }
 
@@ -64,6 +75,12 @@
   --color-text: var(--text);
   --color-muted: var(--muted);
   --color-accent: var(--accent);
+  --color-brand: var(--brand);
+  --color-on-brand: var(--on-brand);
+  --color-rail: var(--rail);
+  --color-on-rail: var(--on-rail);
+  --color-lime: var(--lime);
+  --color-on-lime: var(--on-lime);
   --color-live: var(--live);
   --color-seeded: var(--seeded);
   --color-optimal: var(--optimal);
@@ -72,8 +89,8 @@
   /* The palette reset above removes Tailwind's white; buttons on the accent need it back. */
   --color-white: #ffffff;
 
-  --font-sans: var(--font-plex), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-fraunces), Georgia, serif;
+  --font-sans: var(--font-assistant), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-assistant), ui-sans-serif, system-ui, sans-serif;
 
   /* Type scale 13 / 15 / 18 / 24 / 32 / 48 */
   --text-13: 13px;
@@ -96,7 +113,13 @@
 }
 
 html {
-  color-scheme: dark light;
+  color-scheme: light dark;
+}
+
+/* Headlines are the same family, heavier: their site sets Assistant for both body and headings. */
+.font-display {
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
 body {
@@ -197,8 +220,8 @@ body {
   z-index: 10;
   padding: 0.5rem 0.75rem;
   border-radius: 6px;
-  background: var(--accent);
-  color: #fff;
+  background: var(--brand);
+  color: var(--on-brand);
 }
 .skip-link:focus {
   top: 1rem;
