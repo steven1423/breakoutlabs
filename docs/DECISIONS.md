@@ -506,3 +506,9 @@ Steven's review of the running product: the pages were tables with no stated pur
 - Held-out mAP50 0.33 (0.23 to 0.29 on face photos): it finds roughly a third to four in ten of marked lesions, and four in ten of its boxes are not lesions. Every surface says "detector reading", "marks", "not a diagnosis"; the severity band is four coarse steps on mean detections per frame, for comparing a baseline with a retest on the same terms. The crop is resampled to 640 px, the size it was measured on, and a small source crop is flagged.
 - Weights: ~16 MB of model files and 14 MB of wasm runtime committed under `public/`, so the demo works offline and the runtime version is pinned. Attribution and licences are in `public/models/README.md`; ACNE04 is a research release, which is noted for any commercial reuse.
 - Dependency: `onnxruntime-web` 1.30, the one addition beyond §3, because the detector is ONNX and running it in the browser is the whole privacy design.
+
+### The frame is taken by holding the pose, not by clicking
+
+- What: once a head angle is held for 1.5 s the frame is captured by itself, with a fill bar in the row showing the wait; Space captures the lit row at once; the third angle closes the camera and opens the results. The buttons remain for retakes.
+- Why: the first webcam test showed the obvious flaw of a button per angle: nobody can look at the screen to click while their head is turned to the side, and the button disables the moment they turn back. The pose loop already runs at twelve frames a second, so it is the natural place to count the hold. It reads refs, not state, so a stale closure can never fire a capture twice.
+- Alternative: a voice or countdown-on-click flow. Both add a step; holding still is what a person does anyway once a row lights up.

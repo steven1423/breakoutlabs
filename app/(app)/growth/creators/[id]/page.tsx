@@ -57,7 +57,11 @@ export default async function CreatorPage({ params, searchParams }: Props) {
         ]}
       />
 
-      <div className="mt-8 grid gap-6 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+      <div className="mt-8">
+        <ScanSection scan={scan} creatorId={creator.id} />
+      </div>
+
+      <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <section className="rounded-panel border border-brand/50 bg-surface p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
@@ -83,8 +87,6 @@ export default async function CreatorPage({ params, searchParams }: Props) {
             ) : null}
             <RefreshControls detail={detail} />
           </section>
-
-          <ScanSection scan={scan} creatorId={creator.id} />
 
           <section className="rounded-panel border border-line bg-surface p-5">
             <h2 className="text-18">Cross-links</h2>
@@ -117,32 +119,33 @@ const ANGLE_LABEL: Record<string, string> = { front: "front", left: "turned left
  */
 function ScanSection({ scan, creatorId }: { scan: SavedScan | null; creatorId: string }) {
   return (
-    <section id="scan" className="rounded-panel border border-line bg-surface p-5">
+    <section id="scan" className="rounded-panel border border-brand/50 bg-surface p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-18">Skin scan</h2>
+          <h2 className="text-24 font-semibold">Skin scan</h2>
           <p className="text-13 text-muted">Done by the creator, on their own device, with consent. A baseline before the kit and the same scan at the retest.</p>
         </div>
         {scan ? <DataBadge status="live" reason={`Consented ${scan.consentedAt.slice(0, 10)}`} /> : null}
       </div>
       {scan ? (
         <>
-          <div className="mt-3 grid grid-cols-2 gap-3">
+          <div className="mt-4 grid gap-4 md:grid-cols-[repeat(3,minmax(0,1fr))_minmax(0,2fr)]">
             <Fact label="Detector reading" value={BAND_LABEL[scan.summary.band]} accent />
             <Fact label="Marks per frame" value={`${scan.summary.lesionsPerFrame}`} />
+            <Fact label="Frames" value={`${scan.summary.frames}`} />
+            <ul className="flex flex-col justify-center gap-1">
+              {scan.summary.perZone.map((z) => {
+                const max = Math.max(1, ...scan.summary.perZone.map((p) => p.count));
+                return (
+                  <li key={z.zone} className="grid grid-cols-[6.5rem_minmax(0,1fr)_3rem] items-center gap-2 text-13">
+                    <span className="text-muted">{z.label}</span>
+                    <span className="h-2 rounded-full bg-raised"><span className="block h-2 rounded-full bg-brand" style={{ width: `${(z.count / max) * 100}%` }} /></span>
+                    <span className="text-right">{z.count}</span>
+                  </li>
+                );
+              })}
+            </ul>
           </div>
-          <ul className="mt-3 flex flex-col gap-1">
-            {scan.summary.perZone.map((z) => {
-              const max = Math.max(1, ...scan.summary.perZone.map((p) => p.count));
-              return (
-                <li key={z.zone} className="grid grid-cols-[6.5rem_minmax(0,1fr)_3rem] items-center gap-2 text-13">
-                  <span className="text-muted">{z.label}</span>
-                  <span className="h-2 rounded-full bg-raised"><span className="block h-2 rounded-full bg-brand" style={{ width: `${(z.count / max) * 100}%` }} /></span>
-                  <span className="text-right">{z.count}</span>
-                </li>
-              );
-            })}
-          </ul>
           <details className="mt-3 text-13">
             <summary className="cursor-pointer text-muted">What was analysed: {scan.summary.frames} {scan.summary.frames === 1 ? "frame" : "frames"}, {scan.takenAt.slice(0, 10)}</summary>
             <ul className="mt-2 flex flex-col gap-1">
@@ -163,9 +166,9 @@ function ScanSection({ scan, creatorId }: { scan: SavedScan | null; creatorId: s
       ) : (
         <p className="mt-3 text-15 text-muted">No scan yet. There is nothing to show until the creator runs one; nothing is ever pulled from their videos or photos.</p>
       )}
-      <p className="mt-4 text-13">
-        <Link href={`/scan/creator/${creatorId}`} className="rounded-control border border-line px-3 py-1.5 hover:bg-raised">Open the creator&apos;s scan link</Link>
-        <span className="ml-3 text-muted">Send this to the creator; it runs on their device.</span>
+      <p className="mt-4 flex flex-wrap items-center gap-3 text-15">
+        <Link href={`/scan/creator/${creatorId}`} className="rounded-control bg-brand px-4 py-2 font-medium text-on-brand">{scan ? "Run the scan again" : "Open the creator\u2019s scan link"}</Link>
+        <span className="text-13 text-muted">Send this to the creator; it runs on their device and takes under a minute.</span>
       </p>
     </section>
   );
