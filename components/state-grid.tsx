@@ -21,20 +21,20 @@ export function StateGrid({ cells }: { cells: Cell[] }) {
   const maxShare = Math.max(0.01, ...cells.map((c) => (c.suppressed ? 0 : c.value ?? 0)));
   return (
     <div className="mt-4 overflow-auto">
-      <div className="grid gap-1" style={{ gridTemplateColumns: "repeat(11, minmax(3.6rem, 1fr))", gridTemplateRows: "repeat(8, 3.6rem)", minWidth: "42rem" }} role="list" aria-label="Leading segment by state">
+      <div className="grid gap-1" style={{ gridTemplateColumns: "repeat(11, minmax(3.6rem, 1fr))", gridTemplateRows: "repeat(8, 4.25rem)", minWidth: "42rem" }} role="list" aria-label="Leading segment by state">
         {Object.entries(TILES).map(([state, [row, col]]) => {
           const cell = byState.get(state);
           const style: React.CSSProperties = { gridRow: row + 1, gridColumn: col + 1 };
           if (!cell) {
             return (
-              <div key={state} role="listitem" style={style} className="flex flex-col rounded-control border border-dashed border-line px-1.5 py-1 text-13 text-muted" title={`${state}: no consenting customers`}>
+              <div key={state} role="listitem" style={style} className="flex flex-col rounded-control border border-dashed border-line px-1.5 py-1 text-13 leading-tight text-muted" title={`${state}: no consenting customers`}>
                 <span>{state}</span>
               </div>
             );
           }
           if (cell.suppressed) {
             return (
-              <div key={state} role="listitem" style={style} className="hatched flex flex-col rounded-control border border-line px-1.5 py-1 text-13" title={`${state}: insufficient data (below the minimum cohort)`}>
+              <div key={state} role="listitem" style={style} className="hatched flex flex-col rounded-control border border-line px-1.5 py-1 text-13 leading-tight" title={`${state}: insufficient data (below the minimum cohort)`}>
                 <span>{state}</span>
                 <span className="text-muted">n/a</span>
               </div>
@@ -47,12 +47,12 @@ export function StateGrid({ cells }: { cells: Cell[] }) {
               key={state}
               role="listitem"
               style={{ ...style, background: `color-mix(in oklab, var(--live) ${Math.round(alpha * 100)}%, var(--surface))` }}
-              className="flex flex-col rounded-control border border-line px-1.5 py-1 text-13"
+              className="flex flex-col rounded-control border border-line px-1.5 py-1 text-13 leading-tight"
               title={`${state}: ${cell.label} ${Math.round(share * 100)}% of ${cell.count} consenting customers`}
             >
-              <span>{state}</span>
-              <span className="truncate">{cell.label}</span>
-              <span className="text-muted">{Math.round(share * 100)}%, n {cell.count}</span>
+              <span className="shrink-0 font-medium">{state}</span>
+              <span className="shrink-0 truncate capitalize">{cell.label}</span>
+              <span className="shrink-0 text-muted">{Math.round(share * 100)}%, n {cell.count}</span>
             </div>
           );
         })}
