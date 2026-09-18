@@ -20,6 +20,7 @@ import { pageOf, parsePage, withParams } from "@/lib/ui/paging";
 
 export const metadata: Metadata = { title: "Creators" };
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 const CAPTION = "Discovery is a commodity. Ranking creators by retests is not.";
 const PLATFORMS = ["youtube", "instagram", "tiktok"] as const;

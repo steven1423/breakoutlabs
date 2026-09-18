@@ -2,8 +2,9 @@
 
 Everything here runs on the viewer's own device; nothing is uploaded to run it.
 
-The two large binaries are not committed: `pnpm models` copies the onnxruntime wasm runtime into `public/ort/` from
-node_modules and the lesion detector into `acne/` from `./vendor/acne-model` (or `MODEL_DIR`, or `MODEL_URL`).
+The two large binaries are not committed under `public/`: `pnpm models` copies the onnxruntime wasm runtime into
+`public/ort/` from node_modules and unpacks the lesion detector into `acne/` from `models/acne-detector-int8.onnx.gz`
+at the repo root (`MODEL_DIR` or `MODEL_URL` override it).
 
 - `face/human.js`, `face/blazeface.*`, `face/facemesh.*`, `face/antispoof.*` — @vladmandic/human 3.3.6 (MIT) with the
   MediaPipe BlazeFace and FaceMesh conversions (Apache-2.0). Face detection, the 468-point mesh and head pose, and the
