@@ -473,3 +473,8 @@ Steven's review of the running product: the pages were tables with no stated pur
 - The copilot has a front door on `/ops`: a launcher panel with the spark, one sentence on what it does, and four example questions. A chip dispatches a `copilot:open` event with the question; the dock in the shell listens, opens and asks. The dock stays the place the conversation lives, so the launcher never duplicates the chat.
 - The path-by-year timeline is gone from the calculator; the year table carries the same milestones as numbers.
 - The creator profile opens with six numbers (followers, engagement, views, fit, cost per retest, price band) and puts the campaign results inside the AI card, because the card's job is to say whether this creator is worth paying and the campaign is the evidence.
+
+### Third pass on M9
+- Every number on the lifecycle panels is a link to the queue filtered to those kits (`?view=kits&state=…`, or `?state=…` for the stuck view), and hovering or focusing it shows the first eight kits behind it with their wait, each a link to its timeline. CSS-only (`group-hover`, `group-focus-within`), so the server component stays a server component and the card works without a mouse.
+- The copilot's answers render the light markdown the model writes, bullets, bold and code, instead of showing the asterisks. Tables still come from the fenced json block the prompt asks for; nothing else is interpreted.
+- The allocator page says where its numbers come from, because a reader asked whether they were pulled from an ad platform. They are not: spend is the creator fee, orders and retests are our own records joined by referral code, followers come from the platform APIs where an adapter is live.

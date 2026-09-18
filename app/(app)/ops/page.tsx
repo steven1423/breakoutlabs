@@ -6,7 +6,7 @@ import { KpiRow } from "@/components/kpi";
 import { PageHeader } from "@/components/page-header";
 import { Pager } from "@/components/pager";
 import { PendingActions } from "@/components/pending-actions";
-import { Pipeline, type StuckByState } from "@/components/pipeline";
+import { Pipeline, type KitsByState } from "@/components/pipeline";
 import { RunSweep } from "@/components/run-sweep";
 import { Segmented } from "@/components/segmented";
 import { WhyThisPage } from "@/components/why";
@@ -24,6 +24,7 @@ import {
 } from "@/lib/ops/queries";
 import { copilotLabel, isCopilotConfigured } from "@/lib/copilot/env";
 import { parsePersona, withPersona, type Persona } from "@/lib/personas";
+import { KIT_STATES, type KitState } from "@/lib/state-machine/transitions";
 import { PAGE_SIZE, pageOf, parsePage, withParams, type Page } from "@/lib/ui/paging";
 
 export const metadata: Metadata = { title: "Kits and tickets" };
@@ -41,6 +42,7 @@ export default async function OpsPage({ searchParams }: Props) {
   const persona = parsePersona(params.as);
   const view: View = (VIEWS as readonly string[]).includes(String(params.view)) ? (params.view as View) : "stuck";
   const page = parsePage(params.page);
+  const stateFilter = (KIT_STATES as readonly string[]).includes(String(params.state)) ? (params.state as KitState) : null;
 
   let overview: OpsOverview | null = null;
   let counts: Awaited<ReturnType<typeof loadOpsCounts>> | null = null;
@@ -74,15 +76,20 @@ export default async function OpsPage({ searchParams }: Props) {
   const retests = overview.kits.filter((k) => k.sequence_no > 1).length;
   const worst = overview.stuck[0];
 
-  const stuckByState: StuckByState = {};
-  for (const row of overview.stuck) stuckByState[row.state] = (stuckByState[row.state] ?? 0) + 1;
+  const kitsByState: KitsByState = {};
+  for (const row of overview.kits) {
+    (kitsByState[row.state] ??= []).push({ code: row.kit_code, customer: row.customer?.first_name ?? "Unknown", hoursIn: row.sla.hoursIn, stuck: row.sla.stuck && !row.sla.retention, hoursOver: row.sla.hoursOver });
+  }
+  for (const rows of Object.values(kitsByState)) rows.sort((a, b) => b.hoursOver - a.hoursOver || b.hoursIn - a.hoursIn);
+  const stuckRows = stateFilter ? overview.stuck.filter((k) => k.state === stateFilter) : overview.stuck;
+  const kitRows = stateFilter ? overview.kits.filter((k) => k.state === stateFilter) : overview.kits;
 
   const href = (patch: Record<string, string | number | null>) => `/ops${withParams(params, { as: persona, ...patch })}`;
   const options = [
-    { key: "stuck", label: "Stuck kits", count: overview.stuck.length, href: href({ view: null, page: null }) },
-    { key: "actions", label: "Proposed actions", count: counts.proposed, href: href({ view: "actions", page: null }) },
-    { key: "tickets", label: "Open tickets", count: counts.openTickets, href: href({ view: "tickets", page: null }) },
-    { key: "kits", label: "All kits", count: overview.total, href: href({ view: "kits", page: null }) },
+    { key: "stuck", label: "Stuck kits", count: overview.stuck.length, href: href({ view: null, page: null, state: null }) },
+    { key: "actions", label: "Proposed actions", count: counts.proposed, href: href({ view: "actions", page: null, state: null }) },
+    { key: "tickets", label: "Open tickets", count: counts.openTickets, href: href({ view: "tickets", page: null, state: null }) },
+    { key: "kits", label: "All kits", count: overview.total, href: href({ view: "kits", page: null, state: null }) },
   ];
 
   return (
@@ -108,7 +115,7 @@ export default async function OpsPage({ searchParams }: Props) {
         ]}
       />
 
-      <Pipeline counts={overview.countsByState} stuck={stuckByState} sla={overview.sla} />
+      <Pipeline kits={kitsByState} sla={overview.sla} persona={persona} />
 
       <CopilotLauncher configured={isCopilotConfigured()} label={copilotLabel()} />
 
@@ -122,14 +129,20 @@ export default async function OpsPage({ searchParams }: Props) {
           </div>
           <RunSweep />
         </div>
-        <div className="mt-4">
+        <div className="mt-4 flex flex-wrap items-center gap-3">
           <Segmented options={options} active={view} label="Queue view" />
+          {stateFilter && (view === "stuck" || view === "kits") ? (
+            <span className="flex items-center gap-2 text-15">
+              <span className="rounded-control border border-accent/60 px-2 py-0.5 text-13">{humanise(stateFilter)} only</span>
+              <Link href={href({ state: null, page: null })} className="text-13 text-muted underline decoration-line underline-offset-4 hover:text-text">Clear</Link>
+            </span>
+          ) : null}
         </div>
         <div className="mt-4 overflow-hidden rounded-panel border border-line">
-          {view === "stuck" ? <StuckTable page={pageOf(overview.stuck, page)} overview={overview} persona={persona} params={params} /> : null}
+          {view === "stuck" ? <StuckTable page={pageOf(stuckRows, page)} overview={overview} persona={persona} params={params} /> : null}
           {view === "actions" && actions ? <ActionsView actions={actions} page={page} params={params} /> : null}
           {view === "tickets" && tickets ? <TicketsTable tickets={tickets} page={page} persona={persona} params={params} now={overview.nowMs} /> : null}
-          {view === "kits" ? <KitTable page={pageOf(overview.kits, page)} persona={persona} params={params} /> : null}
+          {view === "kits" ? <KitTable page={pageOf(kitRows, page)} persona={persona} params={params} /> : null}
         </div>
       </section>
     </>
@@ -137,7 +150,7 @@ export default async function OpsPage({ searchParams }: Props) {
 }
 
 function StuckTable({ page, overview, persona, params }: { page: Page<KitListRow>; overview: OpsOverview; persona: Persona; params: Params }) {
-  if (page.total === 0) return <p className="px-4 py-6 text-15 text-muted">Nothing is stuck. Every kit in an ops state is inside its SLA; run the sweep to double-check.</p>;
+  if (page.total === 0) return <p className="px-4 py-6 text-15 text-muted">Nothing is stuck here. Every kit in this view is inside its SLA; run the sweep to double-check.</p>;
   return (
     <>
       <div className="overflow-auto">

@@ -123,14 +123,14 @@ export function Copilot({ configured, label, pending = null }: { configured: boo
 
 type Table = { columns: string[]; rows: unknown[][] };
 
-/** Renders the answer text, turning a fenced json table block into a real table. */
+/** Renders the answer text: fenced json blocks become tables, and the model's light markdown (bullets, bold) becomes lists and emphasis. */
 function Answer({ text }: { text: string }) {
   const parts = splitTables(text);
   return (
     <div className="flex flex-col gap-2">
       {parts.map((p, i) =>
         typeof p === "string" ? (
-          <p key={i} className="whitespace-pre-wrap">{p}</p>
+          <Prose key={i} text={p} />
         ) : (
           <div key={i} className="overflow-auto rounded-panel border border-line">
             <table className="w-full text-13">
@@ -149,6 +149,52 @@ function Answer({ text }: { text: string }) {
         ),
       )}
     </div>
+  );
+}
+
+/** Paragraphs and bullet lists, with **bold** and `code` inline. Enough for what the copilot writes; nothing else is interpreted. */
+function Prose({ text }: { text: string }) {
+  const blocks: ({ kind: "p"; lines: string[] } | { kind: "ul"; items: string[] })[] = [];
+  for (const raw of text.split("\n")) {
+    const line = raw.trimEnd();
+    const bullet = line.match(/^\s*(?:[*\-•]|\d+[.)])\s+(.*)$/);
+    const last = blocks[blocks.length - 1];
+    if (bullet) {
+      if (last?.kind === "ul") last.items.push(bullet[1]);
+      else blocks.push({ kind: "ul", items: [bullet[1]] });
+    } else if (line.trim() === "") {
+      if (last && !(last.kind === "p" && last.lines.length === 0)) blocks.push({ kind: "p", lines: [] });
+    } else if (last?.kind === "p") {
+      last.lines.push(line);
+    } else {
+      blocks.push({ kind: "p", lines: [line] });
+    }
+  }
+  return (
+    <>
+      {blocks.map((b, i) =>
+        b.kind === "ul" ? (
+          <ul key={i} className="flex list-disc flex-col gap-1 pl-5">
+            {b.items.map((item, j) => <li key={j}><Inline text={item} /></li>)}
+          </ul>
+        ) : b.lines.length === 0 ? null : (
+          <p key={i}><Inline text={b.lines.join(" ")} /></p>
+        ),
+      )}
+    </>
+  );
+}
+
+function Inline({ text }: { text: string }) {
+  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g).filter(Boolean);
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (part.startsWith("**") && part.endsWith("**")) return <strong key={i} className="font-medium">{part.slice(2, -2)}</strong>;
+        if (part.startsWith("`") && part.endsWith("`")) return <code key={i} className="rounded-control bg-raised px-1 text-13">{part.slice(1, -1)}</code>;
+        return <span key={i}>{part}</span>;
+      })}
+    </>
   );
 }
 

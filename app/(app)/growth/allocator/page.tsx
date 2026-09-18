@@ -51,6 +51,9 @@ export default async function AllocatorPage() {
 
       <section className="mt-6 rounded-panel border border-line bg-surface p-5">
         <RunAllocator defaultBudget={latest?.budgetUsd ?? 10_000} />
+        <p className="mt-4 border-t border-line pt-3 text-13 text-muted">
+          Where the numbers come from. Spend is what was paid to each creator for the partnership (seeded here; in production the fee on the contract). Orders, registrations and retests are BreakoutLabs&apos; own records, joined to the creator by the referral code the customer used at checkout, so nothing is pulled from an ad platform: creator partnerships are not paid ads, and the retest only exists in this database. Follower counts come from the platform APIs where an adapter is live (YouTube today). Nothing here is estimated by a model; the only model is the Beta posterior over the observed retests.
+        </p>
       </section>
 
       {!latest ? (
