@@ -10,6 +10,8 @@ import { isConfigured } from "@/lib/env";
 import { enrichCreatorAction, generateCardAction } from "@/lib/growth/actions";
 import { formatCount, formatPercent, formatUsd, loadCreatorDetail, type CreatorDetail } from "@/lib/growth/queries";
 import { parsePersona, withPersona } from "@/lib/personas";
+import { latestScan, type SavedScan } from "@/lib/scan/db";
+import { BAND_LABEL } from "@/lib/scan/summarize";
 
 export const metadata: Metadata = { title: "Creator" };
 export const dynamic = "force-dynamic";
@@ -21,7 +23,7 @@ const SEGMENT_LABEL: Record<string, string> = { androgen: "Androgen", insulin: "
 export default async function CreatorPage({ params, searchParams }: Props) {
   const { id } = await params;
   const persona = parsePersona((await searchParams).as);
-  const detail = await loadCreatorDetail(id);
+  const [detail, scan] = await Promise.all([loadCreatorDetail(id), latestScan("creator", id).catch(() => null)]);
   if (!detail) notFound();
   const { creator, card, campaigns, crossLinks } = detail;
   const band = priceBand(creator.followers ?? 0, creator.engagement_rate);
@@ -82,6 +84,8 @@ export default async function CreatorPage({ params, searchParams }: Props) {
             <RefreshControls detail={detail} />
           </section>
 
+          <ScanSection scan={scan} creatorId={creator.id} />
+
           <section className="rounded-panel border border-line bg-surface p-5">
             <h2 className="text-18">Cross-links</h2>
             <p className="text-13 text-muted">Instagram and TikTok handles named in the bio. Their rows start Seeded until an adapter enriches them.</p>
@@ -103,6 +107,69 @@ export default async function CreatorPage({ params, searchParams }: Props) {
 }
 
 const SOURCE_LABEL: Record<string, string> = { youtube_api: "YouTube search", ig_business_discovery: "Instagram", search: "web search", seeded: "seed data" };
+
+const ANGLE_LABEL: Record<string, string> = { front: "front", left: "turned left", right: "turned right" };
+
+/**
+ * The creator's own skin scan, if they have done one. The scan runs on their device from the link
+ * below; what arrives here is counts, zones, angles and times, never a frame. The evidence list is
+ * the per-frame record of what the detector saw, which is all that exists once the tab is closed.
+ */
+function ScanSection({ scan, creatorId }: { scan: SavedScan | null; creatorId: string }) {
+  return (
+    <section id="scan" className="rounded-panel border border-line bg-surface p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-18">Skin scan</h2>
+          <p className="text-13 text-muted">Done by the creator, on their own device, with consent. A baseline before the kit and the same scan at the retest.</p>
+        </div>
+        {scan ? <DataBadge status="live" reason={`Consented ${scan.consentedAt.slice(0, 10)}`} /> : null}
+      </div>
+      {scan ? (
+        <>
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            <Fact label="Detector reading" value={BAND_LABEL[scan.summary.band]} accent />
+            <Fact label="Marks per frame" value={`${scan.summary.lesionsPerFrame}`} />
+          </div>
+          <ul className="mt-3 flex flex-col gap-1">
+            {scan.summary.perZone.map((z) => {
+              const max = Math.max(1, ...scan.summary.perZone.map((p) => p.count));
+              return (
+                <li key={z.zone} className="grid grid-cols-[6.5rem_minmax(0,1fr)_3rem] items-center gap-2 text-13">
+                  <span className="text-muted">{z.label}</span>
+                  <span className="h-2 rounded-full bg-raised"><span className="block h-2 rounded-full bg-brand" style={{ width: `${(z.count / max) * 100}%` }} /></span>
+                  <span className="text-right">{z.count}</span>
+                </li>
+              );
+            })}
+          </ul>
+          <details className="mt-3 text-13">
+            <summary className="cursor-pointer text-muted">What was analysed: {scan.summary.frames} {scan.summary.frames === 1 ? "frame" : "frames"}, {scan.takenAt.slice(0, 10)}</summary>
+            <ul className="mt-2 flex flex-col gap-1">
+              {scan.frames.map((f, i) => (
+                <li key={i} className="flex flex-wrap gap-x-3 border-t border-line pt-1">
+                  <span>{i + 1}. Camera frame, {ANGLE_LABEL[f.angle] ?? f.angle}</span>
+                  <span className="text-muted">yaw {f.yaw}°, pitch {f.pitch}°, face {Math.round(f.faceConfidence * 100)}%{f.real !== null ? `, real ${Math.round(f.real * 100)}%` : ""}, crop {f.cropPx}px, {f.lesions.length} detections, {f.takenAt.slice(11, 19)} UTC</span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 text-muted">
+              Frames were analysed in the creator&apos;s browser and discarded; this list is the whole record. Model {scan.model}. Not a diagnosis: the detector finds roughly a third of visible marks and is used to compare a baseline with a retest on the same terms.
+              {scan.summary.lowResolution ? " The face crop was smaller than the detector was measured on." : ""}
+              {scan.summary.spoofFlag ? " The anti-spoof score was low on at least one frame (advisory; common in dim rooms)." : ""}
+            </p>
+          </details>
+        </>
+      ) : (
+        <p className="mt-3 text-15 text-muted">No scan yet. There is nothing to show until the creator runs one; nothing is ever pulled from their videos or photos.</p>
+      )}
+      <p className="mt-4 text-13">
+        <Link href={`/scan/creator/${creatorId}`} className="rounded-control border border-line px-3 py-1.5 hover:bg-raised">Open the creator&apos;s scan link</Link>
+        <span className="ml-3 text-muted">Send this to the creator; it runs on their device.</span>
+      </p>
+    </section>
+  );
+}
 
 function RefreshControls({ detail }: { detail: CreatorDetail }) {
   const { creator } = detail;
