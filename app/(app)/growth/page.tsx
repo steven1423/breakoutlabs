@@ -72,6 +72,15 @@ export default async function GrowthPage({ searchParams }: Props) {
         reason={youtube ? `YouTube adapter live (${live} live rows); Instagram and TikTok rows seeded` : "Not configured: YOUTUBE_API_KEY, showing seeded creators"}
       />
 
+      <WhyThisPage
+        job="Find the creators whose audiences come back for the retest, and pay those, not the ones with the most followers."
+        steps={[
+          { title: "Discover and score", body: "The YouTube adapter finds channels talking about hormonal and adult acne; the AI card scores fit and drafts the outreach." },
+          { title: "Partner with a code", body: "Every partnership gets a referral code, so every order, registration and retest traces back to one creator." },
+          { title: "Rank by cost per retest", body: "Spend divided by attributed customers who completed a retest. Flip the toggle and watch the order change." },
+        ]}
+      />
+
       <KpiRow
         items={[
           { label: "Creators tracked", value: String(creators.length), detail: `${live} with live numbers, ${creators.length - live} seeded` },
@@ -80,15 +89,6 @@ export default async function GrowthPage({ searchParams }: Props) {
           { label: "Attributed orders", value: orders.toLocaleString("en-US"), detail: `${formatUsd(orders ? spend / orders : null)} blended cost per order` },
           { label: "Retests from creators", value: String(retested), detail: `${orders ? Math.round((retested / orders) * 100) : 0}% of attributed orders retested` },
           { label: "Blended cost per retest", value: formatUsd(retested ? spend / retested : null), detail: byRetest ? `Best: ${byRetest.creator.handle} at ${formatUsd(byRetest.metrics.costPerRetest)}` : "No retests yet", tone: "accent" },
-        ]}
-      />
-
-      <WhyThisPage
-        job="Find the creators whose audiences come back for the retest, and pay those, not the ones with the most followers."
-        steps={[
-          { title: "Discover and score", body: "The YouTube adapter finds channels talking about hormonal and adult acne; the AI card scores fit and drafts the outreach." },
-          { title: "Partner with a code", body: "Every partnership gets a referral code, so every order, registration and retest traces back to one creator." },
-          { title: "Rank by cost per retest", body: "Spend divided by attributed customers who completed a retest. Flip the toggle and watch the order change." },
         ]}
       />
 

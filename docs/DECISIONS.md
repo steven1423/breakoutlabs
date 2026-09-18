@@ -466,3 +466,10 @@ Steven's review of the running product: the pages were tables with no stated pur
 ### The valuation calculator shows the thesis as a curve
 - What: valuation at the horizon against retest rate from 10% to 90% for all three pricing models on one chart, valuation over time inside the 6× to 25× multiple band, a year-by-year table, and a formulas panel in place of two paragraphs of prose. `sensitivity()` and `yearSummary()` are pure and tested.
 - Why: "drag the slider and watch the number" shows one point; the sensitivity chart shows the whole function, and that the membership-first curve is above the standalone curve at every retest rate is the argument for the pricing change in one picture.
+
+### Second pass on M9, from Steven's review of the built pages
+- The purpose strip is no longer a box. It sits directly under the headline as a display-face sentence and three numbered steps, above the numbers, so it reads as the page's opening line rather than a panel taking space.
+- The lifecycle is four panels, one per phase (fulfilment, lab, results and plan, retest loop), each with its kit and stuck counts in the corner. One track with phase headings read as one undifferentiated row.
+- The copilot has a front door on `/ops`: a launcher panel with the spark, one sentence on what it does, and four example questions. A chip dispatches a `copilot:open` event with the question; the dock in the shell listens, opens and asks. The dock stays the place the conversation lives, so the launcher never duplicates the chat.
+- The path-by-year timeline is gone from the calculator; the year table carries the same milestones as numbers.
+- The creator profile opens with six numbers (followers, engagement, views, fit, cost per retest, price band) and puts the campaign results inside the AI card, because the card's job is to say whether this creator is worth paying and the campaign is the evidence.

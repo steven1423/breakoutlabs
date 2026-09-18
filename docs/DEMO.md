@@ -37,7 +37,7 @@ Click kit **BL-4471-XK** in the stuck queue. It is in Results locked, 115 hours 
 
 Say: this is the state that produces one-star reviews. Results exist and the customer cannot reach them. Nobody filed this, the sweep found it.
 
-Back on `/ops`, press **Ask the copilot** in the bottom-right corner. The panel slides in from the right and follows you between pages. Ask:
+Back on `/ops`, use the **Ask the copilot** panel under the four phases: click the first example chip, or open the dock from the bottom-right corner on any page. The panel slides in from the right and follows you between pages. Ask:
 
 > customers whose results are ready but haven't logged in for 7 days
 
@@ -63,7 +63,7 @@ Now the **Campaign leaderboard** tab. The callout above it already states the st
 
 Say: the same fourteen orders look small until you price them by the thing that compounds. This is the metric the business runs on and nobody else in acne can compute it.
 
-Open hannah.hormonehealth's creator page for the AI card: fit 98 on the current cards (it moves a few points each time they are regenerated), androgen, a price band labelled estimate, and an outreach draft under 120 words.
+Open hannah.hormonehealth's creator page: six numbers, then the AI card with the campaign results inside it: fit 98 on the current cards (it moves a few points each time they are regenerated), androgen, a price band labelled estimate, and an outreach draft under 120 words.
 
 Then **Ad budget split** under Growth (`/growth/allocator`). The latest run puts $846.58 on hannah and the $500 floor on tayglowsup out of $10,000 across 15 campaigns. Each campaign shows its Beta posterior as a density curve with the sampled draw marked.
 
