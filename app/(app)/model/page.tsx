@@ -1,19 +1,14 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { ModelCalculator } from "@/components/model-calculator";
-import { ModelTimeline } from "@/components/model-timeline";
 import { PageHeader } from "@/components/page-header";
 import { WhyThisPage } from "@/components/why";
-import { parsePersona } from "@/lib/personas";
 
 export const metadata: Metadata = { title: "Valuation calculator" };
 
 const CAPTION = "Price for the retest. Drag the retest rate and watch what the company is worth.";
 
-type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
-
-export default async function ModelPage({ searchParams }: Props) {
-  const persona = parsePersona((await searchParams).as);
+export default function ModelPage() {
   return (
     <>
       <PageHeader title="Valuation calculator" caption={CAPTION} status="seeded" reason="A model, not a forecast. Formulas in lib/model; inputs live in the URL." />
@@ -29,11 +24,6 @@ export default async function ModelPage({ searchParams }: Props) {
         <ModelCalculator />
       </Suspense>
 
-      <section className="mt-10">
-        <h2 className="text-24">The path, by year</h2>
-        <p className="text-15 text-muted">Each milestone links to the part of BreakoutOS that unlocks it.</p>
-        <ModelTimeline persona={persona} />
-      </section>
     </>
   );
 }
