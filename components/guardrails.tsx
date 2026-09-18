@@ -26,7 +26,7 @@ export function Guardrails({ consentRate, consented, total, minCohort, exports }
         <label htmlFor="min_cohort" className="text-13 text-muted">Minimum cohort per cell</label>
         <div className="flex gap-2">
           <input id="min_cohort" name="min_cohort" type="number" min={2} max={500} defaultValue={minCohort} className="w-24 rounded-control border border-line bg-bg px-3 py-2 text-15 text-text" />
-          <button type="submit" disabled={pending} className="rounded-control bg-accent px-3 py-2 text-15 font-medium text-white disabled:opacity-60">{pending ? "Saving" : "Save threshold"}</button>
+          <button type="submit" disabled={pending} className="rounded-control bg-brand px-3 py-2 text-15 font-medium text-on-brand disabled:opacity-60">{pending ? "Saving" : "Save threshold"}</button>
         </div>
         <p className="text-13 text-muted">
           Cells with fewer people than this are never rendered or exported. Demo dataset: 500 customers, so the setting here is 10; the production default is 50.

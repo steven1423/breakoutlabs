@@ -37,8 +37,28 @@ export function BrandSimulator({ baselines, deltas, summaries, fallbackRate, fal
   const segmentDeltas = deltas.filter((d) => d.segment === inputs.segment);
   const summary = summaries.find((s) => s.segment === inputs.segment);
 
+  const summaryCustomers = summary?.customers ?? null;
   return (
-    <div className="mt-8 grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,3fr)]">
+    <>
+      <section aria-label="What the brand is buying" className="mt-6 grid gap-4 rounded-panel border border-brand/40 bg-surface p-5 md:grid-cols-3">
+        <div>
+          <p className="text-13 text-muted">You are buying</p>
+          <p className="mt-1 text-18">Placement on the Clear Skin Blueprint of {SEGMENT_LABEL[inputs.segment].toLowerCase()}-driven customers aged {inputs.ageBand}</p>
+          <p className="mt-1 text-13 text-muted">{summaryCustomers === null ? "The segment is below the minimum cohort, so its size is not shown." : `${summaryCustomers} consenting customers in this segment today, ${pct(summary?.share ?? 0)} of the dataset. Every one of them has a blood panel that says why they break out.`}</p>
+        </div>
+        <div>
+          <p className="text-13 text-muted">You get back</p>
+          <p className="mt-1 text-18">Retests, not clicks: how many of your buyers came back at 90 days and whether their markers moved</p>
+          <p className="mt-1 text-13 text-muted">A control cohort from the same segment, untreated, and the difference with a 95% interval. When the cohort is too small to tell, the portal says so instead of rounding up.</p>
+        </div>
+        <div>
+          <p className="text-13 text-muted">You never see</p>
+          <p className="mt-1 text-18">A customer. Names, emails, individual results and rows do not exist on this side of the guard</p>
+          <p className="mt-1 text-13 text-muted">Cells under the minimum cohort of {minCohort} are suppressed before anything reaches this page. This is the setting on the Customer insights page, applied here.</p>
+        </div>
+      </section>
+
+    <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,3fr)]">
       <form className="flex flex-col gap-4 self-start rounded-panel border border-line bg-surface p-5 text-15" onSubmit={(e) => e.preventDefault()}>
         <p className="text-18">Your placement</p>
         <Field label="Root-cause segment">
@@ -52,7 +72,7 @@ export function BrandSimulator({ baselines, deltas, summaries, fallbackRate, fal
           </select>
         </Field>
         <Field label={`Budget ${usd(inputs.budgetUsd)}`}>
-          <input type="range" min={5_000} max={100_000} step={1_000} value={inputs.budgetUsd} onChange={(e) => setInputs({ ...inputs, budgetUsd: Number(e.target.value) })} className="accent-live" />
+          <input type="range" min={5_000} max={100_000} step={1_000} value={inputs.budgetUsd} onChange={(e) => setInputs({ ...inputs, budgetUsd: Number(e.target.value) })} className="accent-brand" />
         </Field>
         <Field label="Measurement window">
           <div role="group" className="inline-flex rounded-control border border-line">
@@ -101,6 +121,9 @@ export function BrandSimulator({ baselines, deltas, summaries, fallbackRate, fal
             <Kpi label="Improved at retest" value={sim.treatedRate === null ? "–" : pct(sim.treatedRate)} detail={`${sim.treatedImproved} of ${sim.retested} with your product on the blueprint`} />
             <Kpi label="Lift over control" value={sim.liftPoints === null ? "–" : pts(sim.liftPoints)} detail={`95% interval ${pts(sim.liftInterval[0])} to ${pts(sim.liftInterval[1])}`} tone={sim.liftResolved ? "live" : "seeded"} />
           </div>
+          <p className="text-13 text-muted">
+            The other side of the deal: this placement is {usd(inputs.budgetUsd)} of brand-portal revenue to BreakoutLabs for {sim.retested} retested customers, {usd(sim.retested ? inputs.budgetUsd / sim.retested : 0)} each, against the $120 of partner GMV per retested customer per year the valuation calculator assumes.
+          </p>
 
           <div className="grid gap-6 lg:grid-cols-2">
             <figure className="rounded-panel border border-line bg-surface p-5">
@@ -181,6 +204,7 @@ export function BrandSimulator({ baselines, deltas, summaries, fallbackRate, fal
         </div>
       )}
     </div>
+    </>
   );
 }
 

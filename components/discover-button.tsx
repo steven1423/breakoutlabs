@@ -10,7 +10,7 @@ export function DiscoverButton({ configured }: { configured: boolean }) {
   const [state, action, pending] = useActionState(discoverAction, initial);
   return (
     <form action={action} className="flex flex-wrap items-center gap-4">
-      <button type="submit" disabled={pending || !configured} className="rounded-control bg-accent px-4 py-2 text-15 font-medium text-white disabled:opacity-60">
+      <button type="submit" disabled={pending || !configured} className="rounded-control bg-brand px-4 py-2 text-15 font-medium text-on-brand disabled:opacity-60">
         {pending ? "Discovering" : "Discover on YouTube"}
       </button>
       {!configured ? <span className="text-15 text-muted">Not configured: YOUTUBE_API_KEY. Showing seeded creators.</span> : null}

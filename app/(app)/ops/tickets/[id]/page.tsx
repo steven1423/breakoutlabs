@@ -55,7 +55,7 @@ export default async function TicketPage({ params, searchParams }: Props) {
             <p className="text-13 text-muted">AI summary</p>
             <form action={summarizeTicketAction}>
               <input type="hidden" name="id" value={ticket.id} />
-              <button type="submit" disabled={!configured} className="rounded-control bg-accent px-3 py-1 text-13 font-medium text-white disabled:opacity-60">
+              <button type="submit" disabled={!configured} className="rounded-control bg-brand px-3 py-1 text-13 font-medium text-on-brand disabled:opacity-60">
                 {summary.success ? "Summarize again" : "Summarize"}
               </button>
             </form>

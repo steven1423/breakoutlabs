@@ -34,7 +34,7 @@ export function Leaderboard({ rows, persona }: { rows: LeaderboardRow[]; persona
 
   return (
     <div className="mt-4">
-      <div role="group" aria-label="Rank by" className="inline-flex rounded-control border border-accent/60 text-15">
+      <div role="group" aria-label="Rank by" className="inline-flex rounded-control border border-brand/60 text-15">
         <ToggleButton active={key === "followers"} onClick={() => setKey("followers")}>Rank by followers</ToggleButton>
         <ToggleButton active={key === "cost_per_retest"} onClick={() => setKey("cost_per_retest")}>Rank by cost-per-retest</ToggleButton>
       </div>

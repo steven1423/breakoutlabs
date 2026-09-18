@@ -50,13 +50,13 @@ export default async function CreatorPage({ params, searchParams }: Props) {
           { label: "Engagement rate", value: creator.engagement_rate === null ? "–" : `${(creator.engagement_rate * 100).toFixed(1)}%`, detail: "Likes and comments over followers, last 12 posts" },
           { label: "Average views", value: formatCount(creator.avg_views), detail: "Last 12 posts" },
           { label: "AI fit score", value: card ? `${card.fit_score} / 100` : "–", detail: card ? `Predicted ${SEGMENT_LABEL[card.predicted_segment] ?? card.predicted_segment} audience` : "No card yet", tone: card && card.fit_score >= 70 ? "live" : "default" },
-          { label: "Cost per retest", value: retested ? formatUsd(spend / retested) : "–", detail: campaigns.length ? `${retested} retests from ${orders} orders` : "No campaign yet", tone: "accent" },
+          { label: "Cost per retest", value: retested ? formatUsd(spend / retested) : "–", detail: campaigns.length ? `${retested} retests from ${orders} orders` : "No campaign yet", tone: "brand" },
           { label: "Price per post", value: `${formatUsd(band.low)} to ${formatUsd(band.high)}`, detail: "Estimate from tier and engagement" },
         ]}
       />
 
       <div className="mt-8 grid gap-6 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-        <section className="rounded-panel border border-accent/50 bg-surface p-5">
+        <section className="rounded-panel border border-brand/50 bg-surface p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h2 className="text-24">AI creator card</h2>
@@ -126,7 +126,7 @@ function GenerateCard({ id, campaigns }: { id: string; campaigns: CreatorDetail[
     <>
       <form action={generateCardAction} className="mt-4 flex flex-wrap items-center gap-3">
         <input type="hidden" name="id" value={id} />
-        <button type="submit" disabled={!configured} className="rounded-control bg-accent px-4 py-2 text-15 font-medium text-white disabled:opacity-60">Generate card</button>
+        <button type="submit" disabled={!configured} className="rounded-control bg-brand px-4 py-2 text-15 font-medium text-on-brand disabled:opacity-60">Generate card</button>
         <span className="text-15 text-muted">{configured ? `Uses ${copilotLabel()}.` : `Not configured: ${copilotKeyName()}.`}</span>
       </form>
       <Campaigns campaigns={campaigns} />
@@ -190,7 +190,7 @@ function Fact({ label, value, accent }: { label: string; value: string; accent?:
   return (
     <div className="rounded-control border border-line bg-bg px-3 py-2">
       <p className="text-13 text-muted">{label}</p>
-      <p className={`text-18 ${accent ? "text-accent" : ""}`}>{value}</p>
+      <p className={`text-18 ${accent ? "text-brand" : ""}`}>{value}</p>
     </div>
   );
 }

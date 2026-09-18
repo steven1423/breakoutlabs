@@ -20,7 +20,7 @@ export function PendingActions({ actions }: { actions: PendingActionRow[] }) {
               <form action={decideActionAction}>
                 <input type="hidden" name="id" value={a.id} />
                 <input type="hidden" name="decision" value="confirmed" />
-                <button type="submit" className="rounded-control bg-accent px-3 py-1 text-13 font-medium text-white">Confirm {shortType(a.type)}</button>
+                <button type="submit" className="rounded-control bg-brand px-3 py-1 text-13 font-medium text-on-brand">Confirm {shortType(a.type)}</button>
               </form>
               <form action={decideActionAction}>
                 <input type="hidden" name="id" value={a.id} />

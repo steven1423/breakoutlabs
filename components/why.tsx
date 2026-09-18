@@ -12,7 +12,7 @@ export function WhyThisPage({ job, steps }: { job: string; steps: WhyStep[] }) {
       <ol className="grid gap-x-6 gap-y-3 sm:grid-cols-3">
         {steps.map((s, i) => (
           <li key={s.title} className="flex gap-3">
-            <span aria-hidden="true" className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent text-13 font-medium text-white">{i + 1}</span>
+            <span aria-hidden="true" className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand text-13 font-medium text-on-brand">{i + 1}</span>
             <div>
               <p className="text-15">{s.title}</p>
               <p className="text-13 text-muted">{s.body}</p>

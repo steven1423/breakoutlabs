@@ -114,7 +114,7 @@ export function ModelCalculator() {
                   <XAxis dataKey="rate" type="number" domain={[0.1, 0.9]} ticks={SENSITIVITY_RATES} tickFormatter={pct0} tick={{ fill: "var(--muted)", fontSize: 13 }} tickLine={false} axisLine={{ stroke: "var(--line)" }} />
                   <YAxis tickFormatter={usdShort} tick={{ fill: "var(--muted)", fontSize: 13 }} tickLine={false} axisLine={false} width={64} />
                   <Tooltip formatter={(value, name) => [usdShort(Number(value)), PLAN_LABEL[name as Plan] ?? name]} labelFormatter={(r) => `Retest rate ${pct0(Number(r))}`} contentStyle={TOOLTIP} itemStyle={{ color: "var(--text)" }} cursor={{ stroke: "var(--muted)" }} />
-                  <ReferenceLine x={projection.retestRate} stroke="var(--accent)" strokeWidth={2} />
+                  <ReferenceLine x={projection.retestRate} stroke="var(--brand)" strokeWidth={2} />
                   {PLANS.map((plan) => (
                     <Line key={plan} type="monotone" dataKey={plan} stroke={PLAN_HUE[plan]} strokeWidth={plan === inputs.plan ? 3 : 2} strokeOpacity={plan === inputs.plan ? 1 : 0.6} dot={false} activeDot={{ r: 5 }} isAnimationActive={false} />
                   ))}
@@ -213,18 +213,18 @@ function Slider({ label, value, bounds, format, onChange, accent }: SliderProps)
     <label className="flex flex-col gap-1 text-15">
       <span className="flex justify-between">
         <span className="text-muted">{label}</span>
-        <span className={accent ? "text-accent" : ""}>{format(value)}</span>
+        <span className={accent ? "text-brand" : ""}>{format(value)}</span>
       </span>
-      <input type="range" min={bounds.min} max={bounds.max} step={bounds.step} value={value} onChange={(e) => onChange(Number(e.target.value))} className={accent ? "accent-accent" : "accent-live"} />
+      <input type="range" min={bounds.min} max={bounds.max} step={bounds.step} value={value} onChange={(e) => onChange(Number(e.target.value))} className={accent ? "accent-brand" : "accent-live"} />
     </label>
   );
 }
 
 function Output({ label, value, format, detail, accent }: { label: string; value: number; format: (v: number) => string; detail?: string; accent?: boolean }) {
   return (
-    <div className={`rounded-panel border bg-surface px-4 py-3 ${accent ? "border-accent" : "border-line"}`}>
+    <div className={`rounded-panel border bg-surface px-4 py-3 ${accent ? "border-brand" : "border-line"}`}>
       <p className="text-13 text-muted">{label}</p>
-      <p className={`text-32 leading-none ${accent ? "text-accent" : ""}`}><CountUp value={value} format={format} /></p>
+      <p className={`text-32 leading-none ${accent ? "text-brand" : ""}`}><CountUp value={value} format={format} /></p>
       {detail ? <p className="mt-1 text-13 text-muted">{detail}</p> : null}
     </div>
   );

@@ -88,7 +88,7 @@ export default async function GrowthPage({ searchParams }: Props) {
           { label: "Active campaigns", value: String(leaderboard.length), detail: `${formatUsd(spend)} spent in total` },
           { label: "Attributed orders", value: orders.toLocaleString("en-US"), detail: `${formatUsd(orders ? spend / orders : null)} blended cost per order` },
           { label: "Retests from creators", value: String(retested), detail: `${orders ? Math.round((retested / orders) * 100) : 0}% of attributed orders retested` },
-          { label: "Blended cost per retest", value: formatUsd(retested ? spend / retested : null), detail: byRetest ? `Best: ${byRetest.creator.handle} at ${formatUsd(byRetest.metrics.costPerRetest)}` : "No retests yet", tone: "accent" },
+          { label: "Blended cost per retest", value: formatUsd(retested ? spend / retested : null), detail: byRetest ? `Best: ${byRetest.creator.handle} at ${formatUsd(byRetest.metrics.costPerRetest)}` : "No retests yet", tone: "brand" },
         ]}
       />
 

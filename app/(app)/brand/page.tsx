@@ -70,11 +70,11 @@ export default async function BrandPage() {
     <>
       <PageHeader title="Partner brand portal" caption={CAPTION} status="seeded" reason="Simulated on a synthetic cohort. Brands never see customer rows." />
       <WhyThisPage
-        job="Show a supplement or skincare brand what it would buy from BreakoutLabs in Year 3: placement in front of a root-cause segment, measured by retests instead of clicks."
+        job="Year 3's revenue line: a supplement or skincare brand pays to be on the blueprint of one root-cause segment, and buys proof, measured at the 90-day retest, that its product worked."
         steps={[
-          { title: "Pick the cohort", body: "The root-cause segment and age band the product fits. The portal only ever shows guarded aggregates for it." },
-          { title: "Set a budget", body: "Impressions, purchases, registrations and retests follow from it. Every rate is an estimate and says so." },
-          { title: "Read the lift honestly", body: "Improvement at retest against a matched control, with the interval. When the cohort is too small to tell, the portal says that too." },
+          { title: "What a brand buys", body: "Placement in front of customers whose blood test says their acne is, say, insulin-driven. Not an ad audience: a diagnosed cohort. Priced per retest, never per click." },
+          { title: "What a brand sees", body: "Only guarded aggregates: how big the segment is, how many retest, what changed in their markers, and the improvement lift with its interval. Never a customer." },
+          { title: "Why BreakoutLabs wins", body: "Nobody else has baseline, intervention and retest for acne. That record is what a brand pays for, and it is the brand-portal line in the valuation calculator." },
         ]}
       />
       <BrandSimulator baselines={baselines} deltas={deltas} summaries={summaries} fallbackRate={fallbackRate} fallbackCohort={fallbackCohort} minCohort={minCohort} consented={consented} />

@@ -23,7 +23,7 @@ Current state: 61 open tickets, 336 proposed nudges, 10 creator cards, 209 of 50
 
 ## Beat 1 — the landing page, 20 seconds
 
-Open `/`. Do nothing for six seconds. The loop draws itself arc by arc, the six stage labels appear, then the three thesis lines, then the button.
+Open `/`. Do nothing for six seconds. The loop draws itself arc by arc around the BreakoutLabs wordmark, the six stage labels appear, then the three thesis lines, then the lime button.
 
 Say: the asset is not the test, it is the retest. Every leak in the loop is data that never existed.
 

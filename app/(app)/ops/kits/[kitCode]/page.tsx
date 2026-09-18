@@ -54,7 +54,7 @@ export default async function KitPage({ params, searchParams }: Props) {
           <form action={staffFixAction} className="mt-4">
             <input type="hidden" name="kit_code" value={kit.kit_code} />
             <input type="hidden" name="from" value={kit.state} />
-            <button type="submit" className="rounded-control bg-accent px-4 py-2 text-15 font-medium text-white">{fix.label}</button>
+            <button type="submit" className="rounded-control bg-brand px-4 py-2 text-15 font-medium text-on-brand">{fix.label}</button>
             <span className="ml-3 text-13 text-muted">Moves the kit to {humanise(fix.to)} and records a staff event.</span>
           </form>
         ) : null}

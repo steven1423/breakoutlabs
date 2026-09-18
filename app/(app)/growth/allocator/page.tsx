@@ -94,7 +94,7 @@ function LatestRun({ latest, previous, campaigns, facts }: { latest: NonNullable
         items={[
           { label: "Weekly budget", value: formatUsd(budget), detail: `Run ${latest.runAt.slice(0, 10)}, ${ids.length} campaigns` },
           { label: "Expected retests, this split", value: thisRun.toFixed(1), detail: "From each campaign's cost per order and posterior mean", tone: "live" },
-          { label: "If split by followers", value: byFollowers.toFixed(1), detail: `${thisRun > byFollowers ? "+" : ""}${(((thisRun - byFollowers) / Math.max(byFollowers, 1e-9)) * 100).toFixed(0)}% versus paying the biggest audiences`, tone: "accent" },
+          { label: "If split by followers", value: byFollowers.toFixed(1), detail: `${thisRun > byFollowers ? "+" : ""}${(((thisRun - byFollowers) / Math.max(byFollowers, 1e-9)) * 100).toFixed(0)}% versus paying the biggest audiences`, tone: "brand" },
           { label: "If split evenly", value: even.toFixed(1), detail: `${thisRun > even ? "+" : ""}${(((thisRun - even) / Math.max(even, 1e-9)) * 100).toFixed(0)}% versus a flat split` },
           { label: "Largest share", value: `${Math.round(topShare * 100)}%`, detail: `${campaigns[top]?.handle ?? top}; ${atCap} at the cap, ${atFloor} at the floor` },
           { label: "Money moved since last run", value: moved === null ? "–" : formatUsd(moved), detail: previous ? `Compared with ${previous.runAt.slice(0, 10)}` : "No earlier run to compare with" },

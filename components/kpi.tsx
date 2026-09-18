@@ -1,8 +1,8 @@
 import { DataBadge, type DataStatus } from "@/components/badge";
 
-export type Tone = "default" | "accent" | "live" | "seeded";
+export type Tone = "default" | "accent" | "brand" | "live" | "seeded";
 
-const VALUE_TONE: Record<Tone, string> = { default: "", accent: "text-accent", live: "text-live", seeded: "text-seeded" };
+const VALUE_TONE: Record<Tone, string> = { default: "", accent: "text-accent", brand: "text-brand", live: "text-live", seeded: "text-seeded" };
 
 export type KpiProps = {
   label: string;
